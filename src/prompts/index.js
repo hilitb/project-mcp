@@ -65,7 +65,7 @@ This will create the standard .project/ structure with:
 				},
 			},
 		],
-		'import-plan-to-backlog': [
+		'import-tasks': [
 			{
 				role: 'user',
 				content: {
