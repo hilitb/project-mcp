@@ -20,11 +20,26 @@ test('package.json is valid', async () => {
 	assert.ok(packageJson.bin, 'Package bin entry is required');
 });
 
-test('index.js exists and is executable', async () => {
-	const indexPath = join(PROJECT_ROOT, 'index.js');
+test('src/index.js exists and imports server', async () => {
+	const indexPath = join(PROJECT_ROOT, 'src/index.js');
 	const content = await readFile(indexPath, 'utf-8');
 	
-	assert.ok(content.includes('ProjectMCPServer'), 'Should contain ProjectMCPServer class');
+	assert.ok(content.includes('ProjectMCPServer'), 'Should import ProjectMCPServer');
+	assert.ok(content.includes('./server.js'), 'Should import from server.js');
+});
+
+test('src/server.js contains main server class', async () => {
+	const serverPath = join(PROJECT_ROOT, 'src/server.js');
+	const content = await readFile(serverPath, 'utf-8');
+	
+	assert.ok(content.includes('class ProjectMCPServer'), 'Should contain ProjectMCPServer class');
+	assert.ok(content.includes('setupHandlers'), 'Should have setupHandlers method');
+});
+
+test('src/tools/search.js contains search tools', async () => {
+	const searchPath = join(PROJECT_ROOT, 'src/tools/search.js');
+	const content = await readFile(searchPath, 'utf-8');
+	
 	assert.ok(content.includes('search_project'), 'Should contain search_project tool');
 	assert.ok(content.includes('search_docs'), 'Should contain search_docs tool');
 });
