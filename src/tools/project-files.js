@@ -1,7 +1,7 @@
 /**
  * Project file management tools.
  * Handles: manage_project_file, check_project_state, create_or_update_* tools,
- * add_decision, list_decisions, update_project_status, add_roadmap_milestone
+ * add_decision, list_decisions, get_decision, update_project_status, add_roadmap_milestone, get_roadmap
  */
 
 import { PROJECT_DIR, TODO_SECTIONS } from '../lib/constants.js';
@@ -309,6 +309,35 @@ export const definitions = [
 				},
 			},
 			required: ['title'],
+		},
+	},
+	{
+		name: 'get_decision',
+		description:
+			'Reads a specific architecture decision by ADR ID. Returns the full decision content including context, decision, and consequences.',
+		inputSchema: {
+			type: 'object',
+			properties: {
+				id: {
+					type: 'string',
+					description: 'The ADR ID to retrieve (e.g., "ADR-001", "001", or just "1").',
+				},
+			},
+			required: ['id'],
+		},
+	},
+	{
+		name: 'get_roadmap',
+		description:
+			'Reads the current roadmap content from ROADMAP.md. Returns milestones, phases, and planned work.',
+		inputSchema: {
+			type: 'object',
+			properties: {
+				section: {
+					type: 'string',
+					description: 'Optional: Return only a specific section/milestone.',
+				},
+			},
 		},
 	},
 ];
@@ -1152,6 +1181,102 @@ async function manageProjectFile(args) {
 }
 
 /**
+ * Get decision handler
+ */
+async function getDecision(args) {
+	const { id } = args;
+	await ensureProjectDir();
+
+	const decisionsPath = join(PROJECT_DIR, 'DECISIONS.md');
+	if (!(await fileExists(decisionsPath))) {
+		return {
+			content: [{ type: 'text', text: `❌ DECISIONS.md not found.` }],
+			isError: true,
+		};
+	}
+
+	const content = await readFile(decisionsPath, 'utf-8');
+
+	// Normalize ID (handle "ADR-001", "001", or "1")
+	let searchId = id.toUpperCase();
+	if (!searchId.startsWith('ADR-')) {
+		const num = parseInt(searchId.replace(/\D/g, ''));
+		searchId = `ADR-${String(num).padStart(3, '0')}`;
+	}
+
+	// Find the decision section
+	const decisionRegex = new RegExp(
+		`## ${searchId}: ([^\\n]+)\\n\\n([\\s\\S]*?)(?=\\n## ADR-|\\n---\\n|$)`,
+		'i'
+	);
+	const match = content.match(decisionRegex);
+
+	if (!match) {
+		return {
+			content: [{ type: 'text', text: `❌ Decision ${searchId} not found in DECISIONS.md` }],
+			isError: true,
+		};
+	}
+
+	const title = match[1];
+	const body = match[2].trim();
+
+	let result = `## ${searchId}: ${title}\n\n`;
+	result += body;
+
+	return {
+		content: [{ type: 'text', text: result }],
+	};
+}
+
+/**
+ * Get roadmap handler
+ */
+async function getRoadmap(args) {
+	const { section } = args || {};
+	await ensureProjectDir();
+
+	const roadmapPath = join(PROJECT_DIR, 'ROADMAP.md');
+	if (!(await fileExists(roadmapPath))) {
+		return {
+			content: [
+				{
+					type: 'text',
+					text: `⚠️ ROADMAP.md not found. Use \`create_or_update_roadmap\` or \`add_roadmap_milestone\` to create it.`,
+				},
+			],
+		};
+	}
+
+	const content = await readFile(roadmapPath, 'utf-8');
+
+	if (section) {
+		// Find specific section
+		const sectionRegex = new RegExp(
+			`## [^\\n]*${section.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^\\n]*\\n([\\s\\S]*?)(?=\\n## |\\n---\\n|$)`,
+			'i'
+		);
+		const match = content.match(sectionRegex);
+
+		if (!match) {
+			return {
+				content: [{ type: 'text', text: `❌ Section "${section}" not found in ROADMAP.md` }],
+				isError: true,
+			};
+		}
+
+		return {
+			content: [{ type: 'text', text: match[0].trim() }],
+		};
+	}
+
+	// Return full roadmap
+	return {
+		content: [{ type: 'text', text: content }],
+	};
+}
+
+/**
  * Handler map
  */
 export const handlers = {
@@ -1164,6 +1289,8 @@ export const handlers = {
 	create_or_update_decisions: createOrUpdateDecisions,
 	add_decision: addDecision,
 	list_decisions: listDecisions,
+	get_decision: getDecision,
 	update_project_status: updateProjectStatus,
 	add_roadmap_milestone: addRoadmapMilestone,
+	get_roadmap: getRoadmap,
 };

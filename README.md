@@ -14,20 +14,52 @@ not just directory names.
 
 ---
 
+# ⚡ Quick Start
+
+## Install
+
+```bash
+npm install project-mcp
+```
+
+## Configure
+
+Add to `.mcp.json`:
+
+```json
+{
+	"mcpServers": {
+		"project": {
+			"command": "npx",
+			"args": ["-y", "project-mcp"]
+		}
+	}
+}
+```
+
+**That's it.** The server automatically finds and indexes:
+
+- `.project/` — Operational truth (plans, todos, status)
+- Root markdown files — README.md, DEVELOPMENT.md, etc.
+- `docs/` — Reference documentation
+
+---
+
 ## Table of Contents
 
 - [project-mcp](#project-mcp)
+- [⚡ Quick Start](#-quick-start)
+  - [Install](#install)
+  - [Configure](#configure)
   - [Table of Contents](#table-of-contents)
-  - [⚡ Quick Start](#-quick-start)
-    - [Install](#install)
-    - [Configure](#configure)
   - [🎯 Why project-mcp?](#-why-project-mcp)
-  - [🛠️ Available Tools (32)](#️-available-tools-32)
+  - [🛠️ Available Tools (37)](#️-available-tools-37)
     - [Search Tools](#search-tools)
     - [Project Management Tools](#project-management-tools)
     - [Backlog Tools](#backlog-tools)
     - [Task Management Tools](#task-management-tools)
-    - [Decision & Status Tools](#decision--status-tools)
+    - [Archive Tools](#archive-tools)
+    - [Decision \& Status Tools](#decision--status-tools)
     - [Quality Tools](#quality-tools)
   - [📋 Task Management System](#-task-management-system)
     - [Workflow](#workflow)
@@ -59,37 +91,6 @@ not just directory names.
 
 ---
 
-## ⚡ Quick Start
-
-### Install
-
-```bash
-npm install project-mcp
-```
-
-### Configure
-
-Add to `.mcp.json`:
-
-```json
-{
-	"mcpServers": {
-		"project": {
-			"command": "npx",
-			"args": ["-y", "project-mcp"]
-		}
-	}
-}
-```
-
-**That's it.** The server automatically finds and indexes:
-
-- `.project/` — Operational truth (plans, todos, status)
-- Root markdown files — README.md, DEVELOPMENT.md, etc.
-- `docs/` — Reference documentation
-
----
-
 ## 🎯 Why project-mcp?
 
 **The Problem:** AI agents need to search project documentation, but:
@@ -110,7 +111,7 @@ automatically:
 
 ---
 
-## 🛠️ Available Tools (32)
+## 🛠️ Available Tools (37)
 
 ### Search Tools
 
@@ -154,19 +155,29 @@ automatically:
 | `get_task`        | Read specific task by ID with full details    | Viewing task details     |
 | `update_task`     | Update any task field, transition status      | Modifying existing tasks |
 | `delete_task`     | Permanently remove a task (with confirmation) | Removing cancelled tasks |
+| `search_tasks`    | Search tasks by keyword in title/content      | Finding specific tasks   |
 | `get_next_task`   | Get dependency-aware next task(s) to work on  | Determining what to do   |
 | `list_tasks`      | List/filter tasks with summary dashboard      | Reviewing all tasks      |
-| `archive_task`    | Move completed task to archive/               | Cleaning up done work    |
 | `sync_todo_index` | Generate TODO.md dashboard from active tasks  | Updating the overview    |
+
+### Archive Tools
+
+| Tool                  | Description                          | Use When                    |
+| --------------------- | ------------------------------------ | --------------------------- |
+| `archive_task`        | Move completed task to archive/      | Cleaning up done work       |
+| `list_archived_tasks` | List tasks in archive with filtering | Reviewing completed history |
+| `unarchive_task`      | Restore task from archive to active  | Reopening completed work    |
 
 ### Decision & Status Tools
 
-| Tool                    | Description                     | Use When                         |
-| ----------------------- | ------------------------------- | -------------------------------- |
-| `add_decision`          | Record ADR with structured fmt  | Documenting architecture choices |
-| `list_decisions`        | List/filter architecture ADRs   | Reviewing past decisions         |
-| `update_project_status` | Quick timestamped status update | Reporting progress               |
-| `add_roadmap_milestone` | Add milestone with deliverables | Planning future work             |
+| Tool                    | Description                       | Use When                         |
+| ----------------------- | --------------------------------- | -------------------------------- |
+| `add_decision`          | Record ADR with structured format | Documenting architecture choices |
+| `get_decision`          | Read specific decision by ADR ID  | Viewing decision details         |
+| `list_decisions`        | List/filter architecture ADRs     | Reviewing past decisions         |
+| `update_project_status` | Quick timestamped status update   | Reporting progress               |
+| `add_roadmap_milestone` | Add milestone with deliverables   | Planning future work             |
+| `get_roadmap`           | Read roadmap content              | Viewing planned work             |
 
 ### Quality Tools
 

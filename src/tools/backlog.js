@@ -1,6 +1,6 @@
 /**
  * Backlog management tools.
- * Handles: import_tasks, promote_task, archive_task, add_to_backlog, get_backlog, update_backlog_item, remove_from_backlog
+ * Handles: import_tasks, promote_task, archive_task, add_to_backlog, get_backlog, update_backlog_item, remove_from_backlog, list_archived_tasks, unarchive_task
  */
 
 import {
@@ -240,6 +240,46 @@ export const definitions = [
 				reason: {
 					type: 'string',
 					description: 'Optional reason for removal (for logging).',
+				},
+			},
+			required: ['task_id'],
+		},
+	},
+	{
+		name: 'list_archived_tasks',
+		description:
+			'Lists tasks in the archive/ directory. Shows completed work history with optional filtering by project or date.',
+		inputSchema: {
+			type: 'object',
+			properties: {
+				project: {
+					type: 'string',
+					description: 'Filter by project prefix.',
+				},
+				limit: {
+					type: 'number',
+					description: 'Maximum number of tasks to return. Default: 20.',
+					default: 20,
+				},
+			},
+		},
+	},
+	{
+		name: 'unarchive_task',
+		description:
+			'Restores a task from archive/ back to todos/ for further work. Use when a completed task needs to be reopened.',
+		inputSchema: {
+			type: 'object',
+			properties: {
+				task_id: {
+					type: 'string',
+					description: 'The task ID to unarchive (e.g., "AUTH-001").',
+				},
+				status: {
+					type: 'string',
+					description: 'Status to set on restore. Default: "todo".',
+					enum: ['todo', 'in_progress', 'blocked', 'review'],
+					default: 'todo',
 				},
 			},
 			required: ['task_id'],
@@ -938,6 +978,140 @@ async function removeFromBacklog(args) {
 }
 
 /**
+ * List archived tasks handler
+ */
+async function listArchivedTasks(args) {
+	const { project, limit = 20 } = args || {};
+
+	await ensureArchiveDir();
+
+	const { readdir } = await import('fs/promises');
+	let files;
+	try {
+		files = await readdir(ARCHIVE_DIR);
+	} catch {
+		return {
+			content: [
+				{
+					type: 'text',
+					text: `⚠️ No archive directory found. Completed tasks will appear here after using \`archive_task\`.`,
+				},
+			],
+		};
+	}
+
+	const mdFiles = files.filter((f) => f.endsWith('.md'));
+	if (mdFiles.length === 0) {
+		return {
+			content: [
+				{ type: 'text', text: `📦 Archive is empty. No completed tasks have been archived yet.` },
+			],
+		};
+	}
+
+	// Load archived tasks
+	const tasks = [];
+	for (const file of mdFiles) {
+		const filePath = join(ARCHIVE_DIR, file);
+		const content = await readFile(filePath, 'utf-8');
+		const parsed = matter(content);
+		tasks.push({
+			...parsed.data,
+			file,
+		});
+	}
+
+	// Filter by project if specified
+	let filtered = tasks;
+	if (project) {
+		filtered = filtered.filter((t) => t.project === project.toUpperCase());
+	}
+
+	// Sort by archived date (newest first)
+	filtered.sort((a, b) => {
+		const aDate = a.archived || a.completed || a.updated || '';
+		const bDate = b.archived || b.completed || b.updated || '';
+		return bDate.localeCompare(aDate);
+	});
+
+	const results = filtered.slice(0, limit);
+
+	let result = `## Archived Tasks\n\n`;
+	result += `**Total:** ${filtered.length} task(s)${filtered.length > limit ? ` (showing ${limit})` : ''}\n\n`;
+
+	if (results.length === 0) {
+		result += `*No archived tasks${project ? ` for project ${project.toUpperCase()}` : ''}.*\n`;
+	} else {
+		result += `| ID | Title | Completed | Archived |\n`;
+		result += `|----|-------|-----------|----------|\n`;
+		for (const task of results) {
+			result += `| ${task.id} | ${task.title?.substring(0, 35)}${task.title?.length > 35 ? '...' : ''} | ${task.completed || '-'} | ${task.archived || '-'} |\n`;
+		}
+	}
+
+	result += `\n---\n**Tools:** \`unarchive_task\` to restore | \`search_tasks\` with \`include_archived: true\` to search`;
+
+	return {
+		content: [{ type: 'text', text: result }],
+	};
+}
+
+/**
+ * Unarchive task handler
+ */
+async function unarchiveTask(args) {
+	const { task_id, status = 'todo' } = args;
+
+	await ensureTodosDir();
+	await ensureArchiveDir();
+
+	const id = task_id.toUpperCase();
+	const archiveFile = join(ARCHIVE_DIR, `${id}.md`);
+	const activeFile = join(TODOS_DIR, `${id}.md`);
+
+	if (!(await fileExists(archiveFile))) {
+		return {
+			content: [{ type: 'text', text: `❌ Task ${id} not found in archive/` }],
+			isError: true,
+		};
+	}
+
+	if (await fileExists(activeFile)) {
+		return {
+			content: [{ type: 'text', text: `⚠️ Task ${id} already exists in todos/. Cannot unarchive.` }],
+		};
+	}
+
+	// Read archived task
+	const content = await readFile(archiveFile, 'utf-8');
+	const parsed = matter(content);
+
+	// Update metadata
+	parsed.data.status = status;
+	parsed.data.updated = getISODate();
+	delete parsed.data.archived;
+	if (status !== 'done') {
+		delete parsed.data.completed;
+	}
+
+	const updatedContent = matter.stringify(parsed.content, parsed.data);
+
+	// Move from archive to todos
+	await writeFile(activeFile, updatedContent, 'utf-8');
+	await unlink(archiveFile);
+
+	let result = `## Task Unarchived: ${id}\n\n`;
+	result += `**Title:** ${parsed.data.title}\n`;
+	result += `**Status:** ${status}\n`;
+	result += `**File:** \`todos/${id}.md\`\n\n`;
+	result += `✅ Task restored from archive. It will now appear in \`get_next_task\` and \`list_tasks\`.`;
+
+	return {
+		content: [{ type: 'text', text: result }],
+	};
+}
+
+/**
  * Handler map
  */
 export const handlers = {
@@ -948,4 +1122,6 @@ export const handlers = {
 	get_backlog: getBacklog,
 	update_backlog_item: updateBacklogItem,
 	remove_from_backlog: removeFromBacklog,
+	list_archived_tasks: listArchivedTasks,
+	unarchive_task: unarchiveTask,
 };

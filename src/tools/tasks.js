@@ -1,6 +1,6 @@
 /**
  * Task management tools.
- * Handles: create_task, update_task, get_task, delete_task, get_next_task, list_tasks, sync_todo_index
+ * Handles: create_task, update_task, get_task, delete_task, get_next_task, list_tasks, search_tasks, sync_todo_index
  */
 
 import {
@@ -267,6 +267,40 @@ export const definitions = [
 					description: 'Filter by tag.',
 				},
 			},
+		},
+	},
+	{
+		name: 'search_tasks',
+		description:
+			'Search tasks by keyword in title, description, or content. Returns matching tasks with relevance ranking.',
+		inputSchema: {
+			type: 'object',
+			properties: {
+				query: {
+					type: 'string',
+					description: 'Search query (matches title, description, content).',
+				},
+				project: {
+					type: 'string',
+					description: 'Filter by project.',
+				},
+				status: {
+					type: 'string',
+					description: 'Filter by status.',
+					enum: ['todo', 'in_progress', 'blocked', 'review', 'done', ''],
+				},
+				include_archived: {
+					type: 'boolean',
+					description: 'Include archived tasks in search. Default: false.',
+					default: false,
+				},
+				limit: {
+					type: 'number',
+					description: 'Maximum results to return. Default: 10.',
+					default: 10,
+				},
+			},
+			required: ['query'],
 		},
 	},
 	{
@@ -705,6 +739,88 @@ async function listTasks(args) {
 }
 
 /**
+ * Search tasks handler
+ */
+async function searchTasks(args) {
+	const { query, project, status, include_archived = false, limit = 10 } = args;
+
+	await ensureTodosDir();
+
+	// Load active tasks
+	let tasks = await loadAllTasks();
+
+	// Load archived tasks if requested
+	if (include_archived) {
+		const { ARCHIVE_DIR } = await import('../lib/constants.js');
+		const { readdir } = await import('fs/promises');
+		try {
+			const archiveFiles = await readdir(ARCHIVE_DIR);
+			for (const file of archiveFiles) {
+				if (file.endsWith('.md')) {
+					const filePath = join(ARCHIVE_DIR, file);
+					const content = await readFile(filePath, 'utf-8');
+					const parsed = matter(content);
+					tasks.push({
+						...parsed.data,
+						content: parsed.content,
+						path: `archive/${file}`,
+						archived: true,
+					});
+				}
+			}
+		} catch {
+			// Archive dir may not exist
+		}
+	}
+
+	// Apply filters
+	if (project) {
+		tasks = tasks.filter((t) => t.project === project.toUpperCase());
+	}
+	if (status) {
+		tasks = tasks.filter((t) => t.status === status);
+	}
+
+	// Search by query
+	const queryLower = query.toLowerCase();
+	const matches = tasks.filter((task) => {
+		const titleMatch = task.title?.toLowerCase().includes(queryLower);
+		const contentMatch = task.content?.toLowerCase().includes(queryLower);
+		const descMatch = task.description?.toLowerCase().includes(queryLower);
+		const tagMatch = task.tags?.some((t) => t.toLowerCase().includes(queryLower));
+		return titleMatch || contentMatch || descMatch || tagMatch;
+	});
+
+	// Sort by relevance (title matches first, then content)
+	matches.sort((a, b) => {
+		const aTitle = a.title?.toLowerCase().includes(queryLower) ? 1 : 0;
+		const bTitle = b.title?.toLowerCase().includes(queryLower) ? 1 : 0;
+		if (aTitle !== bTitle) return bTitle - aTitle;
+		return a.id.localeCompare(b.id);
+	});
+
+	const results = matches.slice(0, limit);
+
+	let result = `## Search Results: "${query}"\n\n`;
+	result += `**Found:** ${matches.length} task(s)${matches.length > limit ? ` (showing ${limit})` : ''}\n\n`;
+
+	if (results.length === 0) {
+		result += `*No tasks found matching "${query}"*\n`;
+	} else {
+		result += `| ID | Title | Status | Priority | Location |\n`;
+		result += `|----|-------|--------|----------|----------|\n`;
+		for (const task of results) {
+			const location = task.archived ? '📦 archive' : '📋 active';
+			result += `| ${task.id} | ${task.title?.substring(0, 35)}${task.title?.length > 35 ? '...' : ''} | ${task.status} | ${task.priority} | ${location} |\n`;
+		}
+	}
+
+	return {
+		content: [{ type: 'text', text: result }],
+	};
+}
+
+/**
  * Sync todo index handler
  */
 async function syncTodoIndex(args) {
@@ -822,5 +938,6 @@ export const handlers = {
 	delete_task: deleteTask,
 	get_next_task: getNextTask,
 	list_tasks: listTasks,
+	search_tasks: searchTasks,
 	sync_todo_index: syncTodoIndex,
 };

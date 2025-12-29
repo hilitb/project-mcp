@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.0] - 2024-12-29
+
+### Added
+
+**5 New Tools (32 → 37 total)**
+
+Search & Archive:
+
+- `search_tasks` - Search tasks by keyword in title, description, content
+- `list_archived_tasks` - List tasks in archive/ with filtering
+- `unarchive_task` - Restore task from archive to active work
+
+Decision & Roadmap:
+
+- `get_decision` - Read specific ADR by ID
+- `get_roadmap` - Read roadmap content (full or section)
+
+### Changed
+
+- Tool count updated in README and registry
+
 ## [3.1.0] - 2024-12-29
 
 ### Added
