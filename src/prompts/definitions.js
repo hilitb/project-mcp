@@ -44,9 +44,9 @@ export const prompts = [
 		],
 	},
 	{
-		name: 'import-plan-to-backlog',
+		name: 'import-tasks',
 		description:
-			'Import tasks from a roadmap or plan document into the backlog. Use when user says "import tasks", "add tasks from roadmap", "populate backlog", or "convert plan to tasks".',
+			'Import tasks from a roadmap or plan document into BACKLOG.md. Maps to the `import_tasks` tool. Use when user says "import tasks", "add tasks from roadmap", "populate backlog", or "convert plan to tasks".',
 		arguments: [
 			{
 				name: 'source_file',
