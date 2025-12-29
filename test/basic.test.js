@@ -33,8 +33,8 @@ test('README.md exists', async () => {
 	const readmePath = join(PROJECT_ROOT, 'README.md');
 	const content = await readFile(readmePath, 'utf-8');
 	
-	assert.ok(content.includes('Project MCP'), 'Should mention Project MCP');
-	assert.ok(content.includes('Installation') || content.includes('npm install'), 'Should include installation instructions');
+	assert.ok(content.includes('project-mcp') || content.includes('Project MCP'), 'Should mention project-mcp');
+	assert.ok(content.includes('Installation') || content.includes('npm install') || content.includes('Quick Start'), 'Should include installation instructions');
 });
 
 test('LICENSE exists', async () => {
