@@ -22,10 +22,12 @@ not just directory names.
     - [Install](#install)
     - [Configure](#configure)
   - [🎯 Why project-mcp?](#-why-project-mcp)
-  - [🛠️ Available Tools](#️-available-tools)
+  - [🛠️ Available Tools (32)](#️-available-tools-32)
     - [Search Tools](#search-tools)
     - [Project Management Tools](#project-management-tools)
+    - [Backlog Tools](#backlog-tools)
     - [Task Management Tools](#task-management-tools)
+    - [Decision & Status Tools](#decision--status-tools)
     - [Quality Tools](#quality-tools)
   - [📋 Task Management System](#-task-management-system)
     - [Workflow](#workflow)
@@ -108,7 +110,7 @@ automatically:
 
 ---
 
-## 🛠️ Available Tools
+## 🛠️ Available Tools (32)
 
 ### Search Tools
 
@@ -133,18 +135,38 @@ automatically:
 | `create_or_update_decisions` | Create or update DECISIONS.md                  | Recording architecture decisions |
 | `check_project_state`        | Check which project files exist                | Before making changes            |
 
+### Backlog Tools
+
+| Tool                  | Description                                          | Use When                        |
+| --------------------- | ---------------------------------------------------- | ------------------------------- |
+| `add_to_backlog`      | Add single item to BACKLOG.md                        | Quick task creation             |
+| `get_backlog`         | Read backlog with filtering/sorting                  | Viewing queued work             |
+| `update_backlog_item` | Update priority, title, tags, phase                  | Adjusting backlog items         |
+| `remove_from_backlog` | Delete item without promoting                        | Removing cancelled work         |
+| `import_tasks`        | Parse plan/roadmap and bulk add to BACKLOG.md        | Populating from roadmap         |
+| `promote_task`        | Move task from BACKLOG to active work (creates YAML) | Starting work on a backlog item |
+
 ### Task Management Tools
 
-| Tool              | Description                                          | Use When                        |
-| ----------------- | ---------------------------------------------------- | ------------------------------- |
-| `import_tasks`    | Parse plan/roadmap and add to BACKLOG.md             | Populating the backlog          |
-| `promote_task`    | Move task from BACKLOG to active work (creates YAML) | Starting work on a backlog item |
-| `create_task`     | Create active task directly (bypass backlog)         | Urgent/immediate work           |
-| `update_task`     | Update any task field, transition status             | Modifying existing tasks        |
-| `get_next_task`   | Get dependency-aware next task(s) to work on         | Determining what to do next     |
-| `list_tasks`      | List/filter tasks with summary dashboard             | Reviewing all tasks             |
-| `archive_task`    | Move completed task to archive/                      | Cleaning up done work           |
-| `sync_todo_index` | Generate TODO.md dashboard from active tasks         | Updating the overview           |
+| Tool              | Description                                   | Use When                 |
+| ----------------- | --------------------------------------------- | ------------------------ |
+| `create_task`     | Create active task directly (bypass backlog)  | Urgent/immediate work    |
+| `get_task`        | Read specific task by ID with full details    | Viewing task details     |
+| `update_task`     | Update any task field, transition status      | Modifying existing tasks |
+| `delete_task`     | Permanently remove a task (with confirmation) | Removing cancelled tasks |
+| `get_next_task`   | Get dependency-aware next task(s) to work on  | Determining what to do   |
+| `list_tasks`      | List/filter tasks with summary dashboard      | Reviewing all tasks      |
+| `archive_task`    | Move completed task to archive/               | Cleaning up done work    |
+| `sync_todo_index` | Generate TODO.md dashboard from active tasks  | Updating the overview    |
+
+### Decision & Status Tools
+
+| Tool                    | Description                     | Use When                         |
+| ----------------------- | ------------------------------- | -------------------------------- |
+| `add_decision`          | Record ADR with structured fmt  | Documenting architecture choices |
+| `list_decisions`        | List/filter architecture ADRs   | Reviewing past decisions         |
+| `update_project_status` | Quick timestamped status update | Reporting progress               |
+| `add_roadmap_milestone` | Add milestone with deliverables | Planning future work             |
 
 ### Quality Tools
 
@@ -505,7 +527,7 @@ npm install
 npm test
 
 # Test the server
-node index.js
+node src/index.js
 ```
 
 ---
@@ -516,7 +538,7 @@ node index.js
 - **[Contributing](CONTRIBUTING.md)** — How to contribute
 - **[Security](SECURITY.md)** — Security policy
 - **[Changelog](CHANGELOG.md)** — Version history
-- **[Release Notes v1.3.0](docs/releases/RELEASE_NOTES_v1.3.0.md)** — Latest
+- **[Release Notes v2.0.0](docs/releases/RELEASE_NOTES_v2.0.0.md)** — Latest
   release
 
 ---
