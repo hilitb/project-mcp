@@ -218,25 +218,25 @@ Implement OAuth 2.0 authentication flow...
 │  1. promote_task(task_id: "AUTH-001")                       │
 │     → Creates todos/AUTH-001.md from BACKLOG.md             │
 └─────────────────────┬───────────────────────────────────────┘
-                      │
-                      ▼
+                     │
+                     ▼
 ┌─────────────────────────────────────────────────────────────┐
 │  2. get_next_task()                                         │
 │     → Returns AUTH-001 (dependencies met, highest priority) │
 └─────────────────────┬───────────────────────────────────────┘
-                      │
-                      ▼
+                     │
+                     ▼
 ┌─────────────────────────────────────────────────────────────┐
 │  3. update_task(id: "AUTH-001", status: "in_progress")      │
 │     → Agent works on the task                               │
 └─────────────────────┬───────────────────────────────────────┘
-                      │
-                      ▼
+                     │
+                     ▼
 ┌─────────────────────────────────────────────────────────────┐
 │  4. update_task(id: "AUTH-001", status: "done")             │
 └─────────────────────┬───────────────────────────────────────┘
-                      │
-                      ▼
+                     │
+                     ▼
 ┌─────────────────────────────────────────────────────────────┐
 │  5. archive_task(task_id: "AUTH-001")                       │
 │     → Moves to archive/, keeps todos/ small                 │
@@ -404,7 +404,7 @@ Returns tasks sorted by priority where all dependencies are complete.
 	"arguments": {
 		"project_name": "My App",
 		"project_description": "A web application for task management"
-	}
+  }
 }
 ```
 
