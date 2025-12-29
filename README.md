@@ -1,38 +1,43 @@
-# Project MCP Server
+# project-mcp
 
-A generic MCP (Model Context Protocol) server that provides intent-based search across project documentation. Maps natural language to appropriate sources: `.project/` (operational truth), root-level files, and `docs/` (reference truth).
+> **Intent-based MCP server for project documentation** — Maps natural language to the right sources automatically
 
-## Features
+[![npm version](https://img.shields.io/npm/v/project-mcp.svg)](https://www.npmjs.com/package/project-mcp)
+[![Node.js](https://img.shields.io/node/v/project-mcp.svg)](https://nodejs.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-- **Intent-Based Search**: Maps natural language to appropriate sources automatically
-  - "project" → searches `.project/`, root files, and `docs/`
-  - "docs" → searches only `docs/`
-  - "plan/todos/roadmap/status" → searches only `.project/`
-- **Multi-Source Support**: Searches across `.project/`, root-level files, and `docs/` directories
-- **Semantic Search**: Fuzzy matching with relevance scoring using Fuse.js
-- **Category Filtering**: Filter searches by documentation category
-- **Full Document Access**: Retrieve complete documentation files
-- **Resource Access**: Access files as MCP resources via `project://` URIs
+**The standard for project documentation search in AI agents.**
 
-## Installation
+When users say "project", "docs", or "todos", `project-mcp` automatically searches the right directories—no configuration needed. It understands intent, not just directory names.
 
-### As NPM Package (Recommended)
+## 🎯 Why project-mcp?
+
+**The Problem:** AI agents need to search project documentation, but:
+- Users say "project" not ".project/"
+- Different queries need different sources
+- Manual source mapping is error-prone
+
+**The Solution:** Intent-based search that maps language to sources automatically:
+
+| User Says | Searches |
+|-----------|----------|
+| "project" / "the project" | `.project/` + root files + `docs/` |
+| "docs" / "documentation" | Only `docs/` |
+| "plan" / "todos" / "roadmap" / "status" | Only `.project/` |
+
+**No guessing. No configuration. Just works.**
+
+## ⚡ Quick Start
+
+### Install
 
 ```bash
 npm install project-mcp
 ```
 
-### From Source
+### Configure
 
-```bash
-git clone https://github.com/yourusername/project-mcp.git
-cd project-mcp
-npm install
-```
-
-## Quick Start
-
-Add to your `.mcp.json`:
+Add to `.mcp.json`:
 
 ```json
 {
@@ -45,18 +50,135 @@ Add to your `.mcp.json`:
 }
 ```
 
-## Configuration
+**That's it.** The server automatically finds and indexes:
+- `.project/` — Operational truth (plans, todos, status)
+- Root markdown files — README.md, DEVELOPMENT.md, etc.
+- `docs/` — Reference documentation
 
-### Basic Setup
+## 🚀 Features
 
-The server automatically searches:
-- `.project/` directory (operational truth: plans, todos, status)
-- Root-level markdown files (README.md, DEVELOPMENT.md, etc.)
-- `docs/` directory (reference documentation)
+### Intent-Based Search
+
+**Natural language maps to sources automatically:**
+
+```javascript
+// User: "What's the project status?"
+// → Searches only .project/ (operational truth)
+
+// User: "Show me the API docs"
+// → Searches only docs/ (reference truth)
+
+// User: "Tell me about the project"
+// → Searches all sources (comprehensive)
+```
+
+### Multi-Source Indexing
+
+Searches across three sources intelligently:
+
+1. **`.project/`** — Current state, plans, todos, decisions
+2. **Root files** — README.md, DEVELOPMENT.md, ARCHITECTURE.md
+3. **`docs/`** — Long-form reference documentation
+
+### Smart Detection
+
+Automatically detects intent from query keywords:
+- "plan", "todos", "roadmap", "status" → `.project/` only
+- "docs", "documentation", "reference" → `docs/` only
+- Everything else → All sources
+
+### Fuzzy Search
+
+Powered by [Fuse.js](https://fusejs.io/) for semantic, fuzzy matching with relevance scoring.
+
+## 📖 Usage Examples
+
+### Search Project (All Sources)
+
+```json
+{
+	"tool": "search_project",
+	"arguments": {
+		"query": "What is the current project status?"
+	}
+}
+```
+
+**Result:** Searches `.project/STATUS.md`, `.project/TODO.md`, root files, and `docs/` for relevant information.
+
+### Search Documentation Only
+
+```json
+{
+	"tool": "search_docs",
+	"arguments": {
+		"query": "API authentication",
+		"category": "api"
+	}
+}
+```
+
+**Result:** Searches only `docs/api/` directory.
+
+### Get Specific File
+
+```json
+{
+	"tool": "get_doc",
+	"arguments": {
+		"path": ".project/index.md"
+	}
+}
+```
+
+## 🛠️ Available Tools
+
+| Tool | Description | Use When |
+|------|-------------|----------|
+| `search_project` | Intent-based search across all sources | User says "project" or asks about status/plans |
+| `search_docs` | Search reference documentation only | User specifically asks for "docs" |
+| `get_doc` | Get full file content | You know the exact file path |
+| `list_docs` | List all documentation files | Browsing available docs |
+| `get_doc_structure` | Get directory structure | Understanding organization |
+
+## 📁 Expected Project Structure
+
+```
+my-project/
+├── .project/              # Operational truth
+│   ├── index.md          # Contract file (defines mappings)
+│   ├── TODO.md           # Current todos
+│   ├── ROADMAP.md        # Project roadmap
+│   └── STATUS.md          # Current status
+│
+├── docs/                  # Reference truth
+│   ├── architecture/      # Technical architecture
+│   ├── api/              # API documentation
+│   └── guides/           # How-to guides
+│
+├── README.md              # Project overview
+├── DEVELOPMENT.md         # Development guidelines
+└── ARCHITECTURE.md        # High-level architecture
+```
+
+## 🎨 Intent Mapping
+
+The server uses a contract file (`.project/index.md`) to define source mappings. This makes the system:
+
+- **Explicit** — No guessing about what "project" means
+- **Standardized** — Same contract across all projects
+- **Agent-native** — Designed for AI agents, not just humans
+
+### How It Works
+
+1. User query: "What's the project status?"
+2. Intent detection: Keywords "status" → intent `plan`
+3. Source mapping: `plan` → searches only `.project/`
+4. Results: Returns `.project/STATUS.md`, `.project/TODO.md`, etc.
+
+## ⚙️ Configuration
 
 ### Custom Documentation Directory
-
-Set the `DOCS_DIR` environment variable to use a different docs directory:
 
 ```json
 {
@@ -65,7 +187,7 @@ Set the `DOCS_DIR` environment variable to use a different docs directory:
 			"command": "npx",
 			"args": ["-y", "project-mcp"],
 			"env": {
-				"DOCS_DIR": "/path/to/your/docs"
+				"DOCS_DIR": "/path/to/documentation"
 			}
 		}
 	}
@@ -86,151 +208,37 @@ Set the `DOCS_DIR` environment variable to use a different docs directory:
 }
 ```
 
-## Tools
+## 🔍 How It Works
 
-### `search_project`
+### 1. Automatic Indexing
 
-Search across all project sources with automatic intent detection. Use this when the user says "project", "the project", or asks about project status, plans, todos, or roadmap.
+On startup, the server:
+- Scans `.project/`, root-level, and `docs/` directories
+- Indexes all Markdown files
+- Extracts titles, descriptions, and categories
+- Builds a fuzzy search index
 
-**Parameters:**
-- `query` (required): Search query
-- `intent` (optional): Explicit intent ("project", "docs", "plan", "todos", "roadmap", "status", "operational")
-- `maxResults` (optional): Maximum results (default: 10, max: 50)
+### 2. Intent Detection
 
-**Intent Mapping:**
-- `project` → searches `.project/`, root files, and `docs/`
-- `docs` → searches only `docs/`
-- `plan/todos/roadmap/status/operational` → searches only `.project/`
+When a query arrives:
+- Analyzes keywords in the query
+- Maps to intent type (project, docs, plan, etc.)
+- Selects appropriate sources
 
-**Example:**
-```json
-{
-	"query": "What is the current project status?",
-	"maxResults": 5
-}
-```
+### 3. Smart Search
 
-### `search_docs`
+- Uses Fuse.js for fuzzy matching
+- Scores results by relevance
+- Returns snippets with context
 
-Search only the `docs/` directory for reference documentation.
+## 📚 Documentation
 
-**Parameters:**
-- `query` (required): Search query
-- `category` (optional): Filter by category
-- `maxResults` (optional): Maximum results (default: 10, max: 50)
+- **[Examples](EXAMPLES.md)** — Usage examples and patterns
+- **[Contributing](CONTRIBUTING.md)** — How to contribute
+- **[Security](SECURITY.md)** — Security policy
+- **[Changelog](CHANGELOG.md)** — Version history
 
-**Example:**
-```json
-{
-	"query": "API authentication",
-	"category": "api",
-	"maxResults": 5
-}
-```
-
-### `get_doc`
-
-Get the full content of a specific file from any source.
-
-**Parameters:**
-- `path` (required): File path (e.g., ".project/index.md", "README.md", "docs/architecture/ARCHITECTURE.md")
-
-**Example:**
-```json
-{
-	"path": ".project/index.md"
-}
-```
-
-### `list_docs`
-
-List all available documentation files organized by category.
-
-**Parameters:**
-- `category` (optional): Filter by category
-
-### `get_doc_structure`
-
-Get the complete documentation directory structure.
-
-## How It Works
-
-### Intent-Based Source Mapping
-
-The server maps natural language to appropriate sources:
-
-| User Says | Searches |
-|-----------|----------|
-| "project" / "the project" | `.project/` + root files + `docs/` |
-| "docs" / "documentation" | Only `docs/` |
-| "plan" / "todos" / "roadmap" / "status" | Only `.project/` |
-
-### Directory Structure
-
-The server expects this structure:
-
-```
-/
-├── .project/          # Operational truth (plans, todos, status, decisions)
-│   ├── index.md       # Contract file (defines source mappings)
-│   ├── TODO.md        # Current todos
-│   ├── ROADMAP.md     # Project roadmap
-│   └── STATUS.md      # Current project status
-│
-├── docs/              # Reference truth (long-form documentation)
-│   ├── architecture/  # Technical architecture
-│   ├── api/           # API documentation
-│   ├── guides/        # How-to guides
-│   └── ...
-│
-├── README.md          # Project overview
-├── DEVELOPMENT.md     # Development guidelines
-└── ARCHITECTURE.md    # High-level architecture
-```
-
-### Automatic Indexing
-
-The server automatically:
-
-1. Scans `.project/`, root-level, and `docs/` directories
-2. Indexes all Markdown (`.md`) files
-3. Extracts metadata:
-   - **Titles**: From frontmatter `title` field or first H1 heading
-   - **Descriptions**: From frontmatter `description` field or first paragraph
-   - **Categories**: Based on subdirectory structure
-   - **Source**: Which directory the file came from
-4. Builds a search index using Fuse.js for fuzzy matching
-5. Provides intent-based search across all sources
-
-## Frontmatter Support
-
-The server supports YAML frontmatter in Markdown files:
-
-```markdown
----
-title: My Documentation
-description: This is a description of the documentation
----
-
-# My Documentation
-
-Content here...
-```
-
-If frontmatter is not present, the server extracts the title from the first H1 heading and description from the first paragraph.
-
-## Environment Variables
-
-- `DOCS_DIR`: Path to documentation directory (default: `docs/` in current working directory)
-
-## Development
-
-### Prerequisites
-
-- Node.js 18+ 
-- npm
-
-### Setup
+## 🧪 Development
 
 ```bash
 # Clone repository
@@ -247,37 +255,31 @@ npm test
 node index.js
 ```
 
-### Dependencies
+## 🤝 Contributing
 
-- `@modelcontextprotocol/sdk`: MCP SDK for Node.js
-- `fuse.js`: Fuzzy search and relevance scoring
-- `gray-matter`: Markdown frontmatter parsing
-- `mime-types`: MIME type detection
+Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-### Scripts
+## 📄 License
 
-- `npm start` - Start the MCP server
-- `npm test` - Run tests
-- `npm run lint` - Check code syntax
-- `npm run prepublishOnly` - Run pre-publish checks
+MIT License - see [LICENSE](LICENSE) for details.
 
-## Contributing
+## 🌟 Why This Matters
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+**Before project-mcp:**
+- Agents had to guess which directory to search
+- Users had to know directory structure
+- Manual mapping required for each project
 
-## Security
+**With project-mcp:**
+- Natural language just works
+- Intent maps to sources automatically
+- Standard contract across all projects
+- Zero configuration needed
 
-See [SECURITY.md](SECURITY.md) for security policy and reporting vulnerabilities.
+**This is the new standard for project documentation search in AI agents.**
 
-## License
+---
 
-MIT - see [LICENSE](LICENSE) for details.
+**Made for AI agents. Built for developers. Standard for everyone.**
 
-## Changelog
-
-See [CHANGELOG.md](CHANGELOG.md) for version history.
-
-## Support
-
-- **Issues**: [GitHub Issues](https://github.com/yourusername/project-mcp/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/project-mcp/discussions)
+[Get Started](#-quick-start) • [Documentation](#-documentation) • [Examples](EXAMPLES.md) • [Report Issue](https://github.com/yourusername/project-mcp/issues)
