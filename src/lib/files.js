@@ -5,7 +5,14 @@
 import { readFile, readdir, stat, writeFile, mkdir, unlink, rename } from 'fs/promises';
 import { join, extname, basename } from 'path';
 import matter from 'gray-matter';
-import { PROJECT_DIR, TODOS_DIR, ARCHIVE_DIR, THOUGHTS_DIR, THOUGHTS_TODOS_DIR } from './constants.js';
+import {
+	PROJECT_DIR,
+	TODOS_DIR,
+	ARCHIVE_DIR,
+	THOUGHTS_DIR,
+	THOUGHTS_TODOS_DIR,
+	THOUGHTS_ARCHIVE_DIR,
+} from './constants.js';
 
 /**
  * Ensure .project directory exists
@@ -57,6 +64,17 @@ export async function ensureThoughtsDir() {
 export async function ensureThoughtsTodosDir() {
 	try {
 		await mkdir(THOUGHTS_TODOS_DIR, { recursive: true });
+	} catch (error) {
+		// Directory might already exist
+	}
+}
+
+/**
+ * Ensure .project/thoughts/todos/.archive directory exists
+ */
+export async function ensureThoughtsArchiveDir() {
+	try {
+		await mkdir(THOUGHTS_ARCHIVE_DIR, { recursive: true });
 	} catch (error) {
 		// Directory might already exist
 	}
