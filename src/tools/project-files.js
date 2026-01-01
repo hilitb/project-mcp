@@ -68,8 +68,7 @@ export const definitions = [
 				},
 				replace: {
 					type: 'boolean',
-					description:
-						'If true, replaces the entire file. If false (default), merges with existing content.',
+					description: 'If true, replaces the entire file. If false (default), merges with existing content.',
 					default: false,
 				},
 			},
@@ -101,8 +100,7 @@ export const definitions = [
 				},
 				replace: {
 					type: 'boolean',
-					description:
-						'If true, replaces the entire file. If false (default), merges with existing content.',
+					description: 'If true, replaces the entire file. If false (default), merges with existing content.',
 					default: false,
 				},
 			},
@@ -129,8 +127,7 @@ export const definitions = [
 				},
 				replace: {
 					type: 'boolean',
-					description:
-						'If true, replaces the entire file. If false (default), merges with existing content.',
+					description: 'If true, replaces the entire file. If false (default), merges with existing content.',
 					default: false,
 				},
 			},
@@ -151,8 +148,7 @@ export const definitions = [
 				},
 				replace: {
 					type: 'boolean',
-					description:
-						'If true, replaces the entire file. If false (default), merges with existing content.',
+					description: 'If true, replaces the entire file. If false (default), merges with existing content.',
 					default: false,
 				},
 			},
@@ -178,8 +174,7 @@ export const definitions = [
 				},
 				replace: {
 					type: 'boolean',
-					description:
-						'If true, replaces the entire file. If false (default), merges with existing content.',
+					description: 'If true, replaces the entire file. If false (default), merges with existing content.',
 					default: false,
 				},
 			},
@@ -226,8 +221,7 @@ export const definitions = [
 	},
 	{
 		name: 'list_decisions',
-		description:
-			'Lists all architecture decisions from DECISIONS.md with optional filtering by status or tag.',
+		description: 'Lists all architecture decisions from DECISIONS.md with optional filtering by status or tag.',
 		inputSchema: {
 			type: 'object',
 			properties: {
@@ -328,8 +322,7 @@ export const definitions = [
 	},
 	{
 		name: 'get_roadmap',
-		description:
-			'Reads the current roadmap content from ROADMAP.md. Returns milestones, phases, and planned work.',
+		description: 'Reads the current roadmap content from ROADMAP.md. Returns milestones, phases, and planned work.',
 		inputSchema: {
 			type: 'object',
 			properties: {
@@ -369,15 +362,14 @@ async function checkProjectState() {
 	summary += `**STATUS.md:** ${state.status ? '✅ Exists' : '❌ Missing'} (Current project status, health)\n`;
 	summary += `**DECISIONS.md:** ${state.decisions ? '✅ Exists' : '❌ Missing'} (Architecture decisions, trade-offs)\n\n`;
 
-	const missingCount = Object.values(state).filter((v) => !v).length;
+	const missingCount = Object.values(state).filter(v => !v).length;
 	if (missingCount > 0) {
 		summary += `⚠️ **${missingCount} project management file(s) missing.** Consider creating them:\n`;
 		if (!state.index) summary += '- Use `create_or_update_index` to set up the contract file\n';
 		if (!state.roadmap) summary += '- Use `create_or_update_roadmap` when planning future work\n';
 		if (!state.todo) summary += '- Use `create_or_update_todo` when adding tasks\n';
 		if (!state.status) summary += '- Use `create_or_update_status` when updating project health\n';
-		if (!state.decisions)
-			summary += '- Use `create_or_update_decisions` when documenting architecture decisions\n';
+		if (!state.decisions) summary += '- Use `create_or_update_decisions` when documenting architecture decisions\n';
 	} else {
 		summary += '✅ **All project management files exist.**\n';
 	}
@@ -421,10 +413,7 @@ ${content}
 	let updatedContent = existingContent;
 
 	if (section) {
-		const sectionRegex = new RegExp(
-			`(##+\\s+${section.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^#]*)`,
-			'i'
-		);
+		const sectionRegex = new RegExp(`(##+\\s+${section.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^#]*)`, 'i');
 		if (sectionRegex.test(existingContent)) {
 			updatedContent = existingContent.replace(sectionRegex, `$1\n\n${content}\n`);
 		} else {
@@ -435,10 +424,7 @@ ${content}
 	}
 
 	// Update timestamp
-	updatedContent = updatedContent.replace(
-		/\*Last Updated: .*\*/,
-		`*Last Updated: ${getCurrentDate()}*`
-	);
+	updatedContent = updatedContent.replace(/\*Last Updated: .*\*/, `*Last Updated: ${getCurrentDate()}*`);
 	if (!updatedContent.includes('*Last Updated:')) {
 		updatedContent += `\n\n---\n*Last Updated: ${getCurrentDate()}*\n`;
 	}
@@ -522,10 +508,7 @@ ${content}
 	}
 
 	// Add content to section
-	const sectionRegex = new RegExp(
-		`(## ${sectionTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\n)`,
-		'i'
-	);
+	const sectionRegex = new RegExp(`(## ${sectionTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\n)`, 'i');
 	if (sectionRegex.test(existingContent)) {
 		existingContent = existingContent.replace(sectionRegex, `$1${content}\n\n`);
 	} else {
@@ -533,10 +516,7 @@ ${content}
 	}
 
 	// Update timestamp
-	existingContent = existingContent.replace(
-		/\*Last Updated: .*\*/,
-		`*Last Updated: ${getCurrentDate()}*`
-	);
+	existingContent = existingContent.replace(/\*Last Updated: .*\*/, `*Last Updated: ${getCurrentDate()}*`);
 	if (!existingContent.includes('*Last Updated:')) {
 		existingContent += `\n\n---\n*Last Updated: ${getCurrentDate()}*\n`;
 	}
@@ -625,10 +605,7 @@ ${updateType === 'milestone' ? content : 'No milestone set'}
 	}
 
 	// Update or append to section
-	const sectionRegex = new RegExp(
-		`(## ${sectionTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\n)([^#]*)`,
-		'i'
-	);
+	const sectionRegex = new RegExp(`(## ${sectionTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\n)([^#]*)`, 'i');
 	if (sectionRegex.test(existingContent)) {
 		if (updateType === 'changes' || updateType === 'general') {
 			existingContent = existingContent.replace(sectionRegex, `$1$2\n${content}\n`);
@@ -640,14 +617,8 @@ ${updateType === 'milestone' ? content : 'No milestone set'}
 	}
 
 	// Update timestamp
-	existingContent = existingContent.replace(
-		/\*\*Last Updated:\*\* .*/,
-		`**Last Updated:** ${getCurrentDate()}`
-	);
-	existingContent = existingContent.replace(
-		/\*Last Updated: .*\*/,
-		`*Last Updated: ${getCurrentDate()}*`
-	);
+	existingContent = existingContent.replace(/\*\*Last Updated:\*\* .*/, `**Last Updated:** ${getCurrentDate()}`);
+	existingContent = existingContent.replace(/\*Last Updated: .*\*/, `*Last Updated: ${getCurrentDate()}*`);
 	if (!existingContent.includes('Last Updated')) {
 		existingContent = existingContent.replace(
 			/(# Project Status\n)/,
@@ -743,10 +714,7 @@ Searches only:
 	}
 
 	// Update timestamp
-	updatedContent = updatedContent.replace(
-		/\*Last Updated: .*\*/,
-		`*Last Updated: ${getCurrentDate()}*`
-	);
+	updatedContent = updatedContent.replace(/\*Last Updated: .*\*/, `*Last Updated: ${getCurrentDate()}*`);
 	if (!updatedContent.includes('*Last Updated:')) {
 		updatedContent += `\n\n---\n*Last Updated: ${getCurrentDate()}*\n`;
 	}
@@ -809,10 +777,7 @@ ${content}
 	}
 
 	// Update timestamp
-	updatedContent = updatedContent.replace(
-		/\*Last Updated: .*\*/,
-		`*Last Updated: ${getCurrentDate()}*`
-	);
+	updatedContent = updatedContent.replace(/\*Last Updated: .*\*/, `*Last Updated: ${getCurrentDate()}*`);
 	if (!updatedContent.includes('*Last Updated:')) {
 		updatedContent += `\n\n---\n*Last Updated: ${getCurrentDate()}*\n`;
 	}
@@ -845,7 +810,7 @@ async function addDecision(args) {
 		existingContent = await readFile(decisionsPath, 'utf-8');
 		const matches = existingContent.match(/## ADR-(\d+)/g) || [];
 		if (matches.length > 0) {
-			const nums = matches.map((m) => parseInt(m.replace('## ADR-', '')));
+			const nums = matches.map(m => parseInt(m.replace('## ADR-', '')));
 			decisionNum = Math.max(...nums) + 1;
 		}
 	}
@@ -940,17 +905,17 @@ async function listDecisions(args) {
 			title: match[2],
 			date: match[3],
 			status: match[4].toLowerCase(),
-			tags: match[5] ? match[5].split(',').map((t) => t.trim().toLowerCase()) : [],
+			tags: match[5] ? match[5].split(',').map(t => t.trim().toLowerCase()) : [],
 		});
 	}
 
 	// Apply filters
 	let filtered = decisions;
 	if (status) {
-		filtered = filtered.filter((d) => d.status === status.toLowerCase());
+		filtered = filtered.filter(d => d.status === status.toLowerCase());
 	}
 	if (tag) {
-		filtered = filtered.filter((d) => d.tags.includes(tag.toLowerCase()));
+		filtered = filtered.filter(d => d.tags.includes(tag.toLowerCase()));
 	}
 
 	let result = `## Architecture Decisions\n\n`;
@@ -986,14 +951,13 @@ async function updateProjectStatus(args) {
 	const statusPath = join(PROJECT_DIR, 'STATUS.md');
 	const exists = await fileExists(statusPath);
 
-	const healthEmoji =
-		health === 'green' ? '🟢' : health === 'yellow' ? '🟡' : health === 'red' ? '🔴' : '⚪';
+	const healthEmoji = health === 'green' ? '🟢' : health === 'yellow' ? '🟡' : health === 'red' ? '🔴' : '⚪';
 	const healthText = health ? `${healthEmoji} **${health.toUpperCase()}**` : '';
 
 	const statusEntry = `### Status Update - ${getCurrentDate()}
 
 **Status:** ${status}
-${healthText ? `**Health:** ${healthText}\n` : ''}${changes.length > 0 ? `**Recent Changes:**\n${changes.map((c) => `- ${c}`).join('\n')}\n` : ''}${blockers.length > 0 ? `**Blockers:**\n${blockers.map((b) => `- ⚠️ ${b}`).join('\n')}\n` : ''}${next_milestone ? `**Next Milestone:** ${next_milestone}\n` : ''}
+${healthText ? `**Health:** ${healthText}\n` : ''}${changes.length > 0 ? `**Recent Changes:**\n${changes.map(c => `- ${c}`).join('\n')}\n` : ''}${blockers.length > 0 ? `**Blockers:**\n${blockers.map(b => `- ⚠️ ${b}`).join('\n')}\n` : ''}${next_milestone ? `**Next Milestone:** ${next_milestone}\n` : ''}
 `;
 
 	if (!exists) {
@@ -1015,10 +979,7 @@ ${statusEntry}
 		let existingContent = await readFile(statusPath, 'utf-8');
 
 		// Update the "Last Updated" timestamp
-		existingContent = existingContent.replace(
-			/\*\*Last Updated:\*\* .*/,
-			`**Last Updated:** ${getCurrentDate()}`
-		);
+		existingContent = existingContent.replace(/\*\*Last Updated:\*\* .*/, `**Last Updated:** ${getCurrentDate()}`);
 
 		// Insert new status entry after "## Current Status" or "## Status History"
 		if (existingContent.includes('## Status History')) {
@@ -1029,10 +990,7 @@ ${statusEntry}
 			existingContent = `${existingContent}\n\n## Status Updates\n\n${statusEntry}`;
 		}
 
-		existingContent = existingContent.replace(
-			/\*Last Updated: .*\*/,
-			`*Last Updated: ${getCurrentDate()}*`
-		);
+		existingContent = existingContent.replace(/\*Last Updated: .*\*/, `*Last Updated: ${getCurrentDate()}*`);
 
 		await writeFile(statusPath, existingContent, 'utf-8');
 	}
@@ -1061,13 +1019,7 @@ async function addRoadmapMilestone(args) {
 	const exists = await fileExists(roadmapPath);
 
 	const statusEmoji =
-		status === 'completed'
-			? '✅'
-			: status === 'in_progress'
-				? '🔵'
-				: status === 'delayed'
-					? '🔴'
-					: '⬜';
+		status === 'completed' ? '✅' : status === 'in_progress' ? '🔵' : status === 'delayed' ? '🔴' : '⬜';
 
 	let milestoneEntry = `## ${statusEmoji} ${title}\n\n`;
 	if (target_date) milestoneEntry += `**Target:** ${target_date}\n`;
@@ -1146,17 +1098,13 @@ async function manageProjectFile(args) {
 		const contentLower = content.toLowerCase();
 		if (/\b(contract|source mapping|intent|agent|interpret|canonical)\b/.test(contentLower)) {
 			return await createOrUpdateIndex({ content });
-		} else if (
-			/\b(roadmap|milestone|phase|quarter|q[1-4]|future|plan|planning)\b/.test(contentLower)
-		) {
+		} else if (/\b(roadmap|milestone|phase|quarter|q[1-4]|future|plan|planning)\b/.test(contentLower)) {
 			return await createOrUpdateRoadmap({ content });
 		} else if (/\b(task|todo|todo|in progress|blocked|complete|done|finish)\b/.test(contentLower)) {
 			return await createOrUpdateTodo({ content });
 		} else if (/\b(status|health|phase|metric|risk|blocker|milestone|update)\b/.test(contentLower)) {
 			return await createOrUpdateStatus({ content });
-		} else if (
-			/\b(decision|architecture|trade.?off|rationale|adr|choice|selected)\b/.test(contentLower)
-		) {
+		} else if (/\b(decision|architecture|trade.?off|rationale|adr|choice|selected)\b/.test(contentLower)) {
 			return await createOrUpdateDecisions({ content });
 		} else {
 			return await createOrUpdateTodo({ content });
@@ -1205,10 +1153,7 @@ async function getDecision(args) {
 	}
 
 	// Find the decision section
-	const decisionRegex = new RegExp(
-		`## ${searchId}: ([^\\n]+)\\n\\n([\\s\\S]*?)(?=\\n## ADR-|\\n---\\n|$)`,
-		'i'
-	);
+	const decisionRegex = new RegExp(`## ${searchId}: ([^\\n]+)\\n\\n([\\s\\S]*?)(?=\\n## ADR-|\\n---\\n|$)`, 'i');
 	const match = content.match(decisionRegex);
 
 	if (!match) {

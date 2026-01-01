@@ -11,17 +11,12 @@
 
 import { test, describe } from 'node:test';
 import assert from 'node:assert';
-import {
-	prompts,
-	promptToolMapping,
-	getPromptNames,
-	getToolsForPrompt,
-} from '../src/prompts/definitions.js';
+import { prompts, promptToolMapping, getPromptNames, getToolsForPrompt } from '../src/prompts/definitions.js';
 import { getMessageHandlerKeys } from '../src/prompts/index.js';
 import { definitions as toolDefinitions, hasHandler } from '../src/tools/index.js';
 
 // Get all tool names from definitions
-const allToolNames = toolDefinitions.map((t) => t.name);
+const allToolNames = toolDefinitions.map(t => t.name);
 
 describe('Prompt naming conventions', () => {
 	test('all prompt names use snake_case', () => {
@@ -122,10 +117,7 @@ describe('Tool references validation', () => {
 		const promptNames = getPromptNames();
 
 		for (const promptName of promptNames) {
-			assert.ok(
-				promptName in promptToolMapping,
-				`Prompt "${promptName}" is missing from promptToolMapping`
-			);
+			assert.ok(promptName in promptToolMapping, `Prompt "${promptName}" is missing from promptToolMapping`);
 		}
 	});
 
@@ -133,10 +125,7 @@ describe('Tool references validation', () => {
 		const promptNames = getPromptNames();
 
 		for (const mappingKey of Object.keys(promptToolMapping)) {
-			assert.ok(
-				promptNames.includes(mappingKey),
-				`promptToolMapping key "${mappingKey}" has no matching prompt`
-			);
+			assert.ok(promptNames.includes(mappingKey), `promptToolMapping key "${mappingKey}" has no matching prompt`);
 		}
 	});
 
@@ -162,10 +151,7 @@ describe('Prompt definitions completeness', () => {
 
 	test('all prompts have arguments array (even if empty)', () => {
 		for (const prompt of prompts) {
-			assert.ok(
-				Array.isArray(prompt.arguments),
-				`Prompt "${prompt.name}" should have an arguments array`
-			);
+			assert.ok(Array.isArray(prompt.arguments), `Prompt "${prompt.name}" should have an arguments array`);
 		}
 	});
 
@@ -222,10 +208,7 @@ describe('Integration sanity checks', () => {
 	});
 
 	test('expected number of tools exist', () => {
-		assert.ok(
-			toolDefinitions.length >= 20,
-			`Expected at least 20 tools, got ${toolDefinitions.length}`
-		);
+		assert.ok(toolDefinitions.length >= 20, `Expected at least 20 tools, got ${toolDefinitions.length}`);
 	});
 
 	test('core prompts exist', () => {

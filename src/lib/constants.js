@@ -12,6 +12,8 @@ export const PROJECT_DIR = join(PROJECT_ROOT, '.project');
 export const TODOS_DIR = join(PROJECT_DIR, 'todos');
 export const ARCHIVE_DIR = join(PROJECT_DIR, 'archive');
 export const BACKLOG_FILE = join(PROJECT_DIR, 'BACKLOG.md');
+export const THOUGHTS_DIR = join(PROJECT_DIR, 'thoughts');
+export const THOUGHTS_TODOS_DIR = join(THOUGHTS_DIR, 'todos');
 
 /**
  * Intent to source mapping.

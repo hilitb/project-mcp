@@ -1,0 +1,12 @@
+# .project directory gitignore
+# Keep this file to ensure .project is tracked but can exclude sensitive items
+
+# Don't ignore anything by default - we want to track project management files
+# But you can add patterns here if needed for your specific project
+
+# Example: Ignore draft thoughts that aren't ready to be tracked
+# thoughts/drafts/
+
+# Example: Ignore work-in-progress files
+# *.wip.md
+

@@ -7,16 +7,17 @@ import * as projectFiles from './project-files.js';
 import * as tasks from './tasks.js';
 import * as backlog from './backlog.js';
 import * as lint from './lint.js';
+import * as thoughts from './thoughts.js';
 
 /**
  * All tool modules
  */
-const modules = [search, projectFiles, tasks, backlog, lint];
+const modules = [search, projectFiles, tasks, backlog, lint, thoughts];
 
 /**
  * Combined tool definitions
  */
-export const definitions = modules.flatMap((m) => m.definitions);
+export const definitions = modules.flatMap(m => m.definitions);
 
 /**
  * Combined handler map

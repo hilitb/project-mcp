@@ -3,13 +3,7 @@
  * Handles: lint_project_docs, init_project
  */
 
-import {
-	PROJECT_DIR,
-	TODOS_DIR,
-	ARCHIVE_DIR,
-	VALID_STATUSES,
-	VALID_PRIORITIES,
-} from '../lib/constants.js';
+import { PROJECT_DIR, TODOS_DIR, ARCHIVE_DIR, VALID_STATUSES, VALID_PRIORITIES } from '../lib/constants.js';
 import {
 	readFile,
 	writeFile,
@@ -150,7 +144,7 @@ async function lintProjectDocs(args) {
 	// Check task files
 	if (scope === 'all' || scope === 'tasks') {
 		const tasks = await loadAllTasks();
-		const taskIds = new Set(tasks.map((t) => t.id));
+		const taskIds = new Set(tasks.map(t => t.id));
 
 		// Required task fields
 		const requiredFields = ['id', 'title', 'project', 'status', 'priority'];
@@ -290,8 +284,8 @@ async function lintProjectDocs(args) {
 		// Check for orphaned tasks (done tasks that others depend on)
 		for (const task of tasks) {
 			if (task.status === 'done' && task.depends_on?.length > 0) {
-				const unresolvedDeps = task.depends_on.filter((depId) => {
-					const dep = tasks.find((t) => t.id === depId);
+				const unresolvedDeps = task.depends_on.filter(depId => {
+					const dep = tasks.find(t => t.id === depId);
 					return dep && dep.status !== 'done';
 				});
 				if (unresolvedDeps.length > 0) {
@@ -306,8 +300,8 @@ async function lintProjectDocs(args) {
 	}
 
 	// Build result
-	const errorCount = issues.filter((i) => i.type === 'error').length;
-	const warningCount = issues.filter((i) => i.type === 'warning').length + warnings.length;
+	const errorCount = issues.filter(i => i.type === 'error').length;
+	const warningCount = issues.filter(i => i.type === 'warning').length + warnings.length;
 
 	let result = `## Documentation Lint Results\n\n`;
 	result += `**Scope:** ${scope} | **Strict:** ${strict} | **Auto-fix:** ${fix}\n\n`;

@@ -211,7 +211,7 @@ export const prompts = [
  * @returns {string[]}
  */
 export function getPromptNames() {
-	return prompts.map((p) => p.name);
+	return prompts.map(p => p.name);
 }
 
 /**

@@ -32,9 +32,7 @@ export function detectIntent(query, explicitIntent) {
 	const queryLower = query.toLowerCase();
 
 	// Check for operational keywords
-	if (
-		/\b(plan|plans|todo|todos|roadmap|status|operational|current state|decisions)\b/.test(queryLower)
-	) {
+	if (/\b(plan|plans|todo|todos|roadmap|status|operational|current state|decisions)\b/.test(queryLower)) {
 		return 'plan';
 	}
 
@@ -161,7 +159,7 @@ export async function searchFiles(query, sources, maxResults = 10) {
 	await loadAllFiles();
 
 	// Filter files by source
-	const filesToSearch = allFilesCache.filter((file) => sources.includes(file.source));
+	const filesToSearch = allFilesCache.filter(file => sources.includes(file.source));
 
 	// Rebuild index with filtered files
 	const index = new Fuse(filesToSearch, {

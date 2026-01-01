@@ -3,13 +3,7 @@
  * Handles: import_tasks, promote_task, archive_task, add_to_backlog, get_backlog, update_backlog_item, remove_from_backlog, list_archived_tasks, unarchive_task
  */
 
-import {
-	PROJECT_ROOT,
-	PROJECT_DIR,
-	TODOS_DIR,
-	ARCHIVE_DIR,
-	BACKLOG_FILE,
-} from '../lib/constants.js';
+import { PROJECT_ROOT, PROJECT_DIR, TODOS_DIR, ARCHIVE_DIR, BACKLOG_FILE } from '../lib/constants.js';
 import {
 	readFile,
 	writeFile,
@@ -42,8 +36,7 @@ export const definitions = [
 				},
 				source_type: {
 					type: 'string',
-					description:
-						'Type of source: "file" (path to file) or "content" (raw markdown). Default: "file".',
+					description: 'Type of source: "file" (path to file) or "content" (raw markdown). Default: "file".',
 					enum: ['file', 'content'],
 					default: 'file',
 				},
@@ -63,8 +56,7 @@ export const definitions = [
 				},
 				dry_run: {
 					type: 'boolean',
-					description:
-						'If true, shows what would be imported without modifying BACKLOG.md. Default: false.',
+					description: 'If true, shows what would be imported without modifying BACKLOG.md. Default: false.',
 					default: false,
 				},
 			},
@@ -329,7 +321,7 @@ async function importTasks(args) {
 
 	// Filter by phase if specified
 	if (filterPhase) {
-		tasks = tasks.filter((t) => t.phase && t.phase.toLowerCase().includes(filterPhase.toLowerCase()));
+		tasks = tasks.filter(t => t.phase && t.phase.toLowerCase().includes(filterPhase.toLowerCase()));
 	}
 
 	if (tasks.length === 0) {
@@ -452,10 +444,7 @@ updated: ${getISODate()}
 		}
 
 		// Update timestamp
-		backlogContent = backlogContent.replace(
-			/\*\*Last Updated:\*\* .*/,
-			`**Last Updated:** ${getCurrentDate()}`
-		);
+		backlogContent = backlogContent.replace(/\*\*Last Updated:\*\* .*/, `**Last Updated:** ${getCurrentDate()}`);
 		backlogContent = backlogContent.replace(/updated: .*/, `updated: ${getISODate()}`);
 
 		await writeFile(BACKLOG_FILE, backlogContent, 'utf-8');
@@ -523,7 +512,7 @@ async function promoteTask(args) {
 	}
 
 	const title = match[1].trim();
-	const tags = match[2] ? match[2].split(',').map((t) => t.trim()) : [];
+	const tags = match[2] ? match[2].split(',').map(t => t.trim()) : [];
 	const phase = match[3] || null;
 
 	// Detect priority from backlog section
@@ -720,10 +709,7 @@ updated: ${getISODate()}
 	}
 
 	// Update timestamp
-	backlogContent = backlogContent.replace(
-		/\*\*Last Updated:\*\* .*/,
-		`**Last Updated:** ${getCurrentDate()}`
-	);
+	backlogContent = backlogContent.replace(/\*\*Last Updated:\*\* .*/, `**Last Updated:** ${getCurrentDate()}`);
 	backlogContent = backlogContent.replace(/updated: .*/, `updated: ${getISODate()}`);
 
 	await writeFile(BACKLOG_FILE, backlogContent, 'utf-8');
@@ -763,15 +749,14 @@ async function getBacklog(args) {
 
 	// Parse backlog items
 	const items = [];
-	const itemRegex =
-		/^- \[([ x]|promoted)\] \*\*([A-Z]+-\d+)\*\*:\s*(.+?)(?:\s*\[([^\]]+)\])?(?:\s*\(([^)]+)\))?$/gm;
+	const itemRegex = /^- \[([ x]|promoted)\] \*\*([A-Z]+-\d+)\*\*:\s*(.+?)(?:\s*\[([^\]]+)\])?(?:\s*\(([^)]+)\))?$/gm;
 	let match;
 
 	while ((match = itemRegex.exec(backlogContent)) !== null) {
 		const status = match[1] === ' ' ? 'pending' : match[1] === 'x' ? 'done' : 'promoted';
 		const id = match[2];
 		const title = match[3].trim();
-		const tags = match[4] ? match[4].split(',').map((t) => t.trim()) : [];
+		const tags = match[4] ? match[4].split(',').map(t => t.trim()) : [];
 		const phase = match[5] || null;
 
 		// Detect priority from section
@@ -788,13 +773,13 @@ async function getBacklog(args) {
 	// Apply filters
 	let filtered = items;
 	if (!include_promoted) {
-		filtered = filtered.filter((i) => i.status !== 'promoted');
+		filtered = filtered.filter(i => i.status !== 'promoted');
 	}
 	if (priority) {
-		filtered = filtered.filter((i) => i.priority === priority);
+		filtered = filtered.filter(i => i.priority === priority);
 	}
 	if (project) {
-		filtered = filtered.filter((i) => i.id.startsWith(project.toUpperCase()));
+		filtered = filtered.filter(i => i.id.startsWith(project.toUpperCase()));
 	}
 
 	// Group by priority
@@ -866,7 +851,7 @@ async function updateBacklogItem(args) {
 	}
 
 	const currentTitle = match[2].trim();
-	const currentTags = match[3] ? match[3].split(',').map((t) => t.trim()) : [];
+	const currentTags = match[3] ? match[3].split(',').map(t => t.trim()) : [];
 	const currentPhase = match[4] || null;
 
 	// Build new entry
@@ -919,7 +904,7 @@ async function updateBacklogItem(args) {
 	await writeFile(BACKLOG_FILE, backlog, 'utf-8');
 
 	let result = `## Updated Backlog Item: ${id}\n\n`;
-	result += `**Changes:**\n${changes.map((c) => `- ${c}`).join('\n')}\n\n`;
+	result += `**Changes:**\n${changes.map(c => `- ${c}`).join('\n')}\n\n`;
 	result += `✅ BACKLOG.md updated.`;
 
 	return {
@@ -1000,12 +985,10 @@ async function listArchivedTasks(args) {
 		};
 	}
 
-	const mdFiles = files.filter((f) => f.endsWith('.md'));
+	const mdFiles = files.filter(f => f.endsWith('.md'));
 	if (mdFiles.length === 0) {
 		return {
-			content: [
-				{ type: 'text', text: `📦 Archive is empty. No completed tasks have been archived yet.` },
-			],
+			content: [{ type: 'text', text: `📦 Archive is empty. No completed tasks have been archived yet.` }],
 		};
 	}
 
@@ -1024,7 +1007,7 @@ async function listArchivedTasks(args) {
 	// Filter by project if specified
 	let filtered = tasks;
 	if (project) {
-		filtered = filtered.filter((t) => t.project === project.toUpperCase());
+		filtered = filtered.filter(t => t.project === project.toUpperCase());
 	}
 
 	// Sort by archived date (newest first)

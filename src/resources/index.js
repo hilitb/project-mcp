@@ -2,10 +2,7 @@
  * Resource handlers for the MCP server.
  */
 
-import {
-	ListResourcesRequestSchema,
-	ReadResourceRequestSchema,
-} from '@modelcontextprotocol/sdk/types.js';
+import { ListResourcesRequestSchema, ReadResourceRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { lookup } from 'mime-types';
 import { PROJECT_ROOT } from '../lib/constants.js';
 import { readFile, join } from '../lib/files.js';
@@ -19,7 +16,7 @@ async function listResources() {
 	await loadAllFiles();
 	const allFilesCache = getCachedFiles();
 
-	return allFilesCache.map((doc) => ({
+	return allFilesCache.map(doc => ({
 		uri: `project://${doc.path}`,
 		name: doc.title,
 		description: doc.description || `File: ${doc.path} [${doc.source}]`,
@@ -63,7 +60,7 @@ export function setupResources(server) {
 		resources: await listResources(),
 	}));
 
-	server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+	server.setRequestHandler(ReadResourceRequestSchema, async request => {
 		const { uri } = request.params;
 		return await readResource(uri);
 	});
