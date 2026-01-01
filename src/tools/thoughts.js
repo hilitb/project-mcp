@@ -2,15 +2,14 @@
  * Thought processing tools.
  * Handles: process_thoughts, list_thoughts, get_thought
  *
- * This tool analyzes brain dump markdown files from .project/thoughts/todos/
- * and transforms them into properly structured YAML tasks.
+ * This tool reads brain dump files and provides context for the LLM to analyze.
+ * The LLM does the natural language understanding - the tool just gathers data.
  */
 
 import { readdir } from 'fs/promises';
-import { THOUGHTS_TODOS_DIR, PRIORITY_KEYWORDS, VALID_PRIORITIES } from '../lib/constants.js';
-import { readFile, writeFile, join, fileExists, ensureThoughtsTodosDir, matter } from '../lib/files.js';
-import { getCurrentDate, getISODate } from '../lib/dates.js';
-import { loadAllTasks, getNextTaskId, getExistingTaskIds } from '../lib/tasks.js';
+import { THOUGHTS_TODOS_DIR, PROJECT_DIR } from '../lib/constants.js';
+import { readFile, join, fileExists, ensureThoughtsTodosDir, matter } from '../lib/files.js';
+import { loadAllTasks } from '../lib/tasks.js';
 import { loadAllFiles, getCachedFiles } from '../lib/search.js';
 
 /**
@@ -19,20 +18,20 @@ import { loadAllFiles, getCachedFiles } from '../lib/search.js';
 export const definitions = [
 	{
 		name: 'process_thoughts',
-		description: `Analyzes brain dump markdown files from .project/thoughts/todos/ and transforms them into structured YAML tasks. This tool is intelligent and understands:
+		description: `Reads brain dump markdown files from .project/thoughts/todos/ and returns the content along with project context for analysis.
 
-1. **Explicit Intent** - What the user literally says they want to do
-2. **Shadow Intent** - Implied goals, underlying motivations, hidden needs
-3. **Practical Intent** - What actually needs to happen in concrete terms
+This tool gathers:
+1. **Raw thought content** - The unstructured brain dump as written
+2. **Project context** - Existing tasks, roadmap milestones, decisions for reference
+3. **Task format guide** - The YAML structure for creating tasks
 
-The tool will:
-- Parse unstructured markdown brain dumps
-- Extract actionable tasks from free-form text
-- Infer priority from context, urgency words, and project alignment
-- Cross-reference with project docs (ROADMAP, existing tasks, decisions) for context
-- Output properly formatted YAML tasks ready for creation
+YOU (the LLM) should then analyze the content to:
+- Understand the user's intent (explicit, shadow/underlying, practical)
+- Identify logical task groupings (consolidate related items)
+- Determine appropriate priorities based on context
+- Create well-structured tasks using create_task
 
-Use this when you have messy notes or brain dumps that need to be converted into actionable, tracked tasks.`,
+The tool does NOT automatically create tasks - it provides you with everything needed to make intelligent decisions about task creation.`,
 		inputSchema: {
 			type: 'object',
 			properties: {
@@ -43,26 +42,7 @@ Use this when you have messy notes or brain dumps that need to be converted into
 				},
 				project: {
 					type: 'string',
-					description:
-						'Project prefix for generated task IDs (e.g., "AUTH", "API"). Required for task creation.',
-				},
-				mode: {
-					type: 'string',
-					description:
-						'Processing mode: "analyze" (returns analysis without creating tasks), "create" (creates tasks directly), "preview" (shows what would be created). Default: "analyze".',
-					enum: ['analyze', 'create', 'preview'],
-					default: 'analyze',
-				},
-				default_owner: {
-					type: 'string',
-					description: 'Default owner for generated tasks. Default: "unassigned".',
-					default: 'unassigned',
-				},
-				include_context: {
-					type: 'boolean',
-					description:
-						'Include project context analysis (searches project docs for relevant info). Default: true.',
-					default: true,
+					description: 'Project prefix for task IDs when you create tasks (e.g., "AUTH", "API").',
 				},
 			},
 			required: ['project'],
@@ -71,14 +51,13 @@ Use this when you have messy notes or brain dumps that need to be converted into
 	{
 		name: 'list_thoughts',
 		description:
-			'Lists all thought files in the .project/thoughts/ directory structure. Shows available brain dump files organized by category (todos, etc.).',
+			'Lists all thought files in the .project/thoughts/ directory structure. Shows available brain dump files organized by category.',
 		inputSchema: {
 			type: 'object',
 			properties: {
 				category: {
 					type: 'string',
-					description:
-						'Optional: Filter by thought category. Currently supported: "todos". More categories coming in the future.',
+					description: 'Optional: Filter by thought category. Currently supported: "todos".',
 					enum: ['todos', ''],
 				},
 			},
@@ -86,14 +65,13 @@ Use this when you have messy notes or brain dumps that need to be converted into
 	},
 	{
 		name: 'get_thought',
-		description:
-			'Reads a specific thought file and returns its raw content. Use this to review a brain dump before processing.',
+		description: 'Reads a specific thought file and returns its raw content for review.',
 		inputSchema: {
 			type: 'object',
 			properties: {
 				file: {
 					type: 'string',
-					description: 'The thought file to read (e.g., "my-ideas.md"). Can be in any thoughts subdirectory.',
+					description: 'The thought file to read (e.g., "my-ideas.md").',
 				},
 				category: {
 					type: 'string',
@@ -107,256 +85,14 @@ Use this when you have messy notes or brain dumps that need to be converted into
 ];
 
 /**
- * Intent analysis types
- */
-const INTENT_MARKERS = {
-	// Explicit intent markers - direct statements of what to do
-	explicit: [
-		/\b(need to|have to|must|should|will|going to|want to|plan to)\b/i,
-		/\b(implement|create|build|add|fix|update|change|remove|delete)\b/i,
-		/\b(task|todo|action item|deliverable)\b/i,
-	],
-	// Shadow intent markers - underlying motivations
-	shadow: [
-		/\b(because|since|so that|in order to|to enable|to allow|to prevent)\b/i,
-		/\b(worried about|concerned|frustrated|annoying|painful|tedious)\b/i,
-		/\b(would be nice|could|might|maybe|possibly|eventually)\b/i,
-		/\b(users|customers|team|stakeholders)\s+(want|need|expect|complain)/i,
-	],
-	// Practical intent markers - concrete actions
-	practical: [
-		/\b(step \d+|first|then|next|finally|after that)\b/i,
-		/\b(file|function|class|module|component|api|endpoint|database)\b/i,
-		/\b(test|deploy|configure|setup|install|migrate)\b/i,
-	],
-	// Urgency markers
-	urgency: {
-		P0: [/\b(critical|blocker|urgent|asap|immediately|breaking|down|outage)\b/i],
-		P1: [/\b(important|high priority|soon|this week|pressing|significant)\b/i],
-		P2: [/\b(medium|normal|standard|regular|when possible)\b/i],
-		P3: [/\b(low priority|nice to have|eventually|someday|minor|trivial)\b/i],
-	},
-};
-
-/**
- * Extract todos from unstructured markdown content
- * @param {string} content - Raw markdown content
- * @returns {Array} Extracted todo items with metadata
- */
-function extractTodosFromContent(content) {
-	const todos = [];
-	const lines = content.split('\n');
-
-	let currentContext = [];
-	let currentSection = null;
-
-	for (let i = 0; i < lines.length; i++) {
-		const line = lines[i];
-		const trimmed = line.trim();
-
-		// Track section headers for context
-		const headerMatch = trimmed.match(/^(#{1,6})\s+(.+)/);
-		if (headerMatch) {
-			currentSection = headerMatch[2];
-			currentContext = [];
-			continue;
-		}
-
-		// Skip empty lines but reset context after multiple empties
-		if (!trimmed) {
-			if (currentContext.length > 0 && lines[i - 1]?.trim() === '') {
-				currentContext = [];
-			}
-			continue;
-		}
-
-		// Check for explicit todo markers
-		const todoMatch =
-			trimmed.match(/^[-*]\s*\[[ x]\]\s*(.+)/) ||
-			trimmed.match(/^[-*]\s+(.+)/) ||
-			trimmed.match(/^(\d+)\.\s+(.+)/);
-
-		if (todoMatch) {
-			const text = todoMatch[2] || todoMatch[1];
-			if (text && text.length >= 5) {
-				todos.push({
-					raw: text.trim(),
-					section: currentSection,
-					context: [...currentContext],
-					lineNumber: i + 1,
-					isExplicitTodo: /^\[[ x]\]/.test(trimmed),
-				});
-			}
-		} else if (hasActionableIntent(trimmed)) {
-			// Lines with strong action intent even without list markers
-			todos.push({
-				raw: trimmed,
-				section: currentSection,
-				context: [...currentContext],
-				lineNumber: i + 1,
-				isExplicitTodo: false,
-			});
-		} else {
-			// Add to context for following items
-			currentContext.push(trimmed);
-			if (currentContext.length > 3) {
-				currentContext.shift();
-			}
-		}
-	}
-
-	return todos;
-}
-
-/**
- * Check if a line has actionable intent
- * @param {string} line - Line to check
- * @returns {boolean}
- */
-function hasActionableIntent(line) {
-	// Must have at least one explicit intent marker
-	const hasExplicit = INTENT_MARKERS.explicit.some(rx => rx.test(line));
-	if (!hasExplicit) return false;
-
-	// Must be long enough to be meaningful
-	if (line.length < 15) return false;
-
-	// Must not be a question or observation
-	if (/^(what|how|why|when|where|who|is|are|was|were|do|does)\b/i.test(line)) return false;
-	if (line.endsWith('?')) return false;
-
-	return true;
-}
-
-/**
- * Analyze intent layers for a todo item
- * @param {object} todo - Todo item with raw text and context
- * @returns {object} Intent analysis
- */
-function analyzeIntent(todo) {
-	const text = todo.raw;
-	const context = todo.context.join(' ');
-	const combined = `${text} ${context}`;
-
-	const analysis = {
-		explicit: null,
-		shadow: null,
-		practical: null,
-		priority: 'P2',
-		confidence: 0,
-		tags: [],
-	};
-
-	// Extract explicit intent - what they say they want
-	analysis.explicit = text;
-
-	// Extract shadow intent - why they want it
-	const shadowMatches = [];
-	INTENT_MARKERS.shadow.forEach(rx => {
-		const match = combined.match(rx);
-		if (match) {
-			// Get surrounding context
-			const idx = combined.indexOf(match[0]);
-			const start = Math.max(0, idx - 20);
-			const end = Math.min(combined.length, idx + match[0].length + 50);
-			shadowMatches.push(combined.substring(start, end).trim());
-		}
-	});
-	if (shadowMatches.length > 0) {
-		analysis.shadow = shadowMatches.join('; ');
-	}
-
-	// Extract practical intent - concrete actions
-	const practicalMatches = [];
-	INTENT_MARKERS.practical.forEach(rx => {
-		if (rx.test(combined)) {
-			practicalMatches.push(rx.source.replace(/\\b|\(|\)/g, ''));
-		}
-	});
-	if (practicalMatches.length > 0) {
-		analysis.practical = `Involves: ${practicalMatches.join(', ')}`;
-	}
-
-	// Determine priority from urgency markers
-	for (const [priority, patterns] of Object.entries(INTENT_MARKERS.urgency)) {
-		if (patterns.some(rx => rx.test(combined))) {
-			analysis.priority = priority;
-			break;
-		}
-	}
-
-	// Also check keyword-based priority
-	const textLower = combined.toLowerCase();
-	for (const [keyword, pri] of Object.entries(PRIORITY_KEYWORDS)) {
-		if (textLower.includes(keyword)) {
-			// Only upgrade priority, don't downgrade
-			const currentOrder = { P0: 0, P1: 1, P2: 2, P3: 3 };
-			if (currentOrder[pri] < currentOrder[analysis.priority]) {
-				analysis.priority = pri;
-			}
-			break;
-		}
-	}
-
-	// Extract potential tags from brackets or hashtags
-	const tagMatches = text.match(/\[([^\]]+)\]/g) || [];
-	const hashTags = text.match(/#(\w+)/g) || [];
-	analysis.tags = [
-		...tagMatches.map(t => t.slice(1, -1).toLowerCase()),
-		...hashTags.map(t => t.slice(1).toLowerCase()),
-	];
-
-	// Calculate confidence based on markers found
-	let confidence = 0;
-	if (todo.isExplicitTodo) confidence += 40;
-	if (INTENT_MARKERS.explicit.some(rx => rx.test(text))) confidence += 30;
-	if (analysis.shadow) confidence += 15;
-	if (analysis.practical) confidence += 15;
-	analysis.confidence = Math.min(100, confidence);
-
-	return analysis;
-}
-
-/**
- * Generate a clean title from raw todo text
- * @param {string} raw - Raw todo text
- * @returns {string} Clean title
- */
-function generateTitle(raw) {
-	let title = raw
-		// Remove checkbox markers
-		.replace(/^\[[ x]\]\s*/, '')
-		// Remove tag brackets
-		.replace(/\[[^\]]+\]/g, '')
-		// Remove hashtags
-		.replace(/#\w+/g, '')
-		// Remove leading action words that are too generic
-		.replace(/^(need to|have to|must|should|will|want to)\s+/i, '')
-		// Clean up whitespace
-		.replace(/\s+/g, ' ')
-		.trim();
-
-	// Capitalize first letter
-	title = title.charAt(0).toUpperCase() + title.slice(1);
-
-	// Truncate if too long
-	if (title.length > 80) {
-		title = title.substring(0, 77) + '...';
-	}
-
-	return title;
-}
-
-/**
- * Get project context from existing docs and tasks
- * @returns {Promise<object>} Project context summary
+ * Get project context for the LLM
  */
 async function getProjectContext() {
 	const context = {
 		existingTasks: [],
-		roadmapItems: [],
+		roadmap: null,
 		decisions: [],
-		summary: '',
+		status: null,
 	};
 
 	try {
@@ -367,83 +103,43 @@ async function getProjectContext() {
 			title: t.title,
 			status: t.status,
 			priority: t.priority,
+			tags: t.tags || [],
 		}));
 
-		// Load project files for context
+		// Load project files
 		await loadAllFiles();
 		const files = getCachedFiles();
 
-		// Find roadmap items
+		// Get roadmap content
 		const roadmapFile = files.find(f => f.path.includes('ROADMAP'));
 		if (roadmapFile) {
-			const milestones = roadmapFile.content.match(/##\s+[^#\n]+/g) || [];
-			context.roadmapItems = milestones.map(m => m.replace('##', '').trim());
+			context.roadmap = roadmapFile.content.substring(0, 2000); // First 2000 chars
 		}
 
-		// Find decisions
+		// Get decisions
 		const decisionsFile = files.find(f => f.path.includes('DECISIONS'));
 		if (decisionsFile) {
 			const adrs = decisionsFile.content.match(/## ADR-\d+: [^\n]+/g) || [];
 			context.decisions = adrs.map(a => a.replace('## ', ''));
 		}
 
-		// Build summary
-		const parts = [];
-		if (context.existingTasks.length > 0) {
-			const inProgress = context.existingTasks.filter(t => t.status === 'in_progress');
-			const todoCount = context.existingTasks.filter(t => t.status === 'todo').length;
-			parts.push(
-				`${context.existingTasks.length} existing tasks (${inProgress.length} in progress, ${todoCount} todo)`
-			);
+		// Get current status
+		const statusFile = files.find(f => f.path.includes('STATUS'));
+		if (statusFile) {
+			context.status = statusFile.content.substring(0, 1000); // First 1000 chars
 		}
-		if (context.roadmapItems.length > 0) {
-			parts.push(`${context.roadmapItems.length} roadmap milestones`);
-		}
-		if (context.decisions.length > 0) {
-			parts.push(`${context.decisions.length} architecture decisions`);
-		}
-		context.summary = parts.join(', ') || 'No existing project context found';
-	} catch (error) {
-		context.summary = 'Unable to load project context';
+	} catch {
+		// Context loading failed, continue without it
 	}
 
 	return context;
 }
 
 /**
- * Check for potential duplicates or related tasks
- * @param {string} title - Task title to check
- * @param {Array} existingTasks - Existing tasks
- * @returns {Array} Related tasks
- */
-function findRelatedTasks(title, existingTasks) {
-	const titleWords = title
-		.toLowerCase()
-		.split(/\s+/)
-		.filter(w => w.length > 3);
-	const related = [];
-
-	for (const task of existingTasks) {
-		const taskTitle = task.title.toLowerCase();
-		const matchingWords = titleWords.filter(w => taskTitle.includes(w));
-		if (matchingWords.length >= 2 || matchingWords.length / titleWords.length > 0.5) {
-			related.push({
-				id: task.id,
-				title: task.title,
-				status: task.status,
-				similarity: matchingWords.length / titleWords.length,
-			});
-		}
-	}
-
-	return related.sort((a, b) => b.similarity - a.similarity).slice(0, 3);
-}
-
-/**
- * Process thoughts handler
+ * Process thoughts handler - returns data for LLM analysis
  */
 async function processThoughts(args) {
-	const { file, project, mode = 'analyze', default_owner = 'unassigned', include_context = true } = args;
+	const { file, project } = args;
 
 	await ensureThoughtsTodosDir();
 
@@ -479,222 +175,123 @@ async function processThoughts(args) {
 			content: [
 				{
 					type: 'text',
-					text: `⚠️ No thought files found in \`.project/thoughts/todos/\`\n\nCreate markdown files with your brain dumps, then run this tool to process them into structured tasks.`,
+					text: `⚠️ No thought files found in \`.project/thoughts/todos/\`\n\nCreate markdown files with your brain dumps, then run this tool to process them.`,
 				},
 			],
 		};
 	}
 
-	// Get project context if requested
-	let projectContext = null;
-	if (include_context) {
-		projectContext = await getProjectContext();
-	}
-
-	// Process each file
-	const allAnalyzedTodos = [];
-	const processedFiles = [];
-
+	// Read all thought files
+	const thoughtContents = [];
 	for (const thoughtFile of filesToProcess) {
 		const content = await readFile(thoughtFile.path, 'utf-8');
 		const parsed = matter(content);
-		const rawContent = parsed.content;
-
-		// Extract todos from content
-		const extractedTodos = extractTodosFromContent(rawContent);
-
-		// Analyze each todo
-		for (const todo of extractedTodos) {
-			const intent = analyzeIntent(todo);
-			const title = generateTitle(todo.raw);
-
-			// Skip if too low confidence
-			if (intent.confidence < 30) continue;
-
-			// Find related existing tasks
-			const related = projectContext ? findRelatedTasks(title, projectContext.existingTasks) : [];
-
-			allAnalyzedTodos.push({
-				sourceFile: thoughtFile.name,
-				lineNumber: todo.lineNumber,
-				section: todo.section,
-				raw: todo.raw,
-				title,
-				intent,
-				related,
-				taskData: {
-					title,
-					project: project.toUpperCase(),
-					priority: intent.priority,
-					status: 'todo',
-					owner: default_owner,
-					tags: intent.tags,
-					description: buildDescription(todo, intent),
-				},
-			});
-		}
-
-		processedFiles.push({
-			name: thoughtFile.name,
-			todosFound: extractedTodos.length,
-			todosKept: allAnalyzedTodos.filter(t => t.sourceFile === thoughtFile.name).length,
+		thoughtContents.push({
+			filename: thoughtFile.name,
+			content: parsed.content,
+			frontmatter: parsed.data,
 		});
 	}
 
-	// Build result based on mode
-	let result = `## Thought Processing Results\n\n`;
-	result += `**Mode:** ${mode}\n`;
-	result += `**Project:** ${project.toUpperCase()}\n`;
-	result += `**Files Processed:** ${processedFiles.length}\n`;
-	result += `**Todos Extracted:** ${allAnalyzedTodos.length}\n`;
+	// Get project context
+	const projectContext = await getProjectContext();
 
-	if (projectContext) {
-		result += `\n### Project Context\n\n${projectContext.summary}\n`;
+	// Build the response for the LLM
+	let result = `# Thought Processing Data
+
+## Instructions for You (the LLM)
+
+Analyze the thought content below and create appropriate tasks. Consider:
+
+1. **Intent Analysis**
+   - **Explicit intent**: What does the user literally say they want?
+   - **Shadow intent**: What's the underlying motivation? Why do they want this?
+   - **Practical intent**: What concrete actions are needed?
+
+2. **Task Consolidation**
+   - Group related items into single tasks with subtasks
+   - Don't create a separate task for every bullet point
+   - Section headers often indicate a logical task grouping
+
+3. **Priority Assessment**
+   - P0: Critical/blocker/urgent - system down, security issue
+   - P1: High priority - important, needed soon
+   - P2: Medium (default) - normal work items
+   - P3: Low - nice to have, eventually
+
+4. **Use \`create_task\` to create tasks** with this structure:
+   - title: Clear, actionable task title
+   - project: "${project.toUpperCase()}"
+   - description: Include context and subtasks
+   - priority: P0-P3 based on your analysis
+   - tags: Relevant categorization
+   - subtasks: Array of subtask strings (for consolidated items)
+
+---
+
+## Thought Files to Process
+
+`;
+
+	for (const thought of thoughtContents) {
+		result += `### File: ${thought.filename}\n\n`;
+		result += '```markdown\n';
+		result += thought.content;
+		result += '\n```\n\n';
 	}
 
-	result += `\n### Processed Files\n\n`;
-	for (const pf of processedFiles) {
-		result += `- **${pf.name}**: ${pf.todosFound} items found, ${pf.todosKept} actionable\n`;
+	result += `---
+
+## Project Context
+
+Use this to understand what already exists and align new tasks appropriately.
+
+### Existing Tasks (${projectContext.existingTasks.length} total)
+
+`;
+
+	if (projectContext.existingTasks.length > 0) {
+		result += '| ID | Title | Status | Priority |\n';
+		result += '|----|-------|--------|----------|\n';
+		for (const task of projectContext.existingTasks.slice(0, 20)) {
+			result += `| ${task.id} | ${task.title.substring(0, 40)}${task.title.length > 40 ? '...' : ''} | ${task.status} | ${task.priority} |\n`;
+		}
+		if (projectContext.existingTasks.length > 20) {
+			result += `\n*...and ${projectContext.existingTasks.length - 20} more tasks*\n`;
+		}
+	} else {
+		result += '*No existing tasks*\n';
 	}
 
-	if (allAnalyzedTodos.length === 0) {
-		result += `\n⚠️ No actionable todos found. The content may not contain clear task items, or confidence was too low.\n`;
-		result += `\n**Tips:**\n`;
-		result += `- Use checkbox syntax: \`- [ ] Task description\`\n`;
-		result += `- Include action verbs: implement, create, fix, add, update\n`;
-		result += `- Add urgency markers: critical, urgent, important, soon\n`;
-
-		return {
-			content: [{ type: 'text', text: result }],
-		};
+	if (projectContext.roadmap) {
+		result += `\n### Roadmap Overview\n\n`;
+		result += '```\n' + projectContext.roadmap + '\n```\n';
 	}
 
-	result += `\n---\n\n## Extracted Todos\n\n`;
-
-	const createdTasks = [];
-
-	for (let i = 0; i < allAnalyzedTodos.length; i++) {
-		const todo = allAnalyzedTodos[i];
-
-		result += `### ${i + 1}. ${todo.title}\n\n`;
-		result += `**Source:** \`${todo.sourceFile}\` (line ${todo.lineNumber})\n`;
-		result += `**Priority:** ${todo.intent.priority} (confidence: ${todo.intent.confidence}%)\n`;
-
-		if (todo.section) {
-			result += `**Section:** ${todo.section}\n`;
+	if (projectContext.decisions.length > 0) {
+		result += `\n### Architecture Decisions\n\n`;
+		for (const decision of projectContext.decisions) {
+			result += `- ${decision}\n`;
 		}
-
-		result += `\n**Intent Analysis:**\n`;
-		result += `- **Explicit:** ${todo.intent.explicit}\n`;
-		if (todo.intent.shadow) {
-			result += `- **Shadow (why):** ${todo.intent.shadow}\n`;
-		}
-		if (todo.intent.practical) {
-			result += `- **Practical:** ${todo.intent.practical}\n`;
-		}
-
-		if (todo.intent.tags.length > 0) {
-			result += `- **Tags:** ${todo.intent.tags.join(', ')}\n`;
-		}
-
-		if (todo.related.length > 0) {
-			result += `\n**⚠️ Potentially Related Tasks:**\n`;
-			for (const rel of todo.related) {
-				result += `- ${rel.id}: ${rel.title} (${rel.status})\n`;
-			}
-		}
-
-		// Show YAML preview
-		result += `\n**Generated YAML:**\n`;
-		result += `\`\`\`yaml\n`;
-		result += `title: "${todo.taskData.title}"\n`;
-		result += `project: ${todo.taskData.project}\n`;
-		result += `priority: ${todo.taskData.priority}\n`;
-		result += `status: ${todo.taskData.status}\n`;
-		result += `owner: ${todo.taskData.owner}\n`;
-		if (todo.taskData.tags.length > 0) {
-			result += `tags: [${todo.taskData.tags.join(', ')}]\n`;
-		}
-		result += `\`\`\`\n\n`;
-
-		// Create tasks in create mode
-		if (mode === 'create') {
-			try {
-				// Import create_task handler dynamically to avoid circular deps
-				const { handlers: taskHandlers } = await import('./tasks.js');
-				const createResult = await taskHandlers.create_task({
-					title: todo.taskData.title,
-					project: todo.taskData.project,
-					description: todo.taskData.description,
-					owner: todo.taskData.owner,
-					priority: todo.taskData.priority,
-					tags: todo.taskData.tags,
-				});
-
-				// Extract task ID from result
-				const idMatch = createResult.content[0].text.match(/\*\*([A-Z]+-\d+)\*\*/);
-				if (idMatch) {
-					createdTasks.push({
-						id: idMatch[1],
-						title: todo.taskData.title,
-					});
-					result += `✅ **Created:** ${idMatch[1]}\n\n`;
-				}
-			} catch (error) {
-				result += `❌ **Failed to create:** ${error.message}\n\n`;
-			}
-		}
-
-		result += `---\n\n`;
 	}
 
-	// Summary footer
-	if (mode === 'analyze') {
-		result += `\n## Next Steps\n\n`;
-		result += `1. Review the extracted todos above\n`;
-		result += `2. Run with \`mode: "preview"\` to see final task format\n`;
-		result += `3. Run with \`mode: "create"\` to create the tasks\n`;
-		result += `\nOr use \`create_task\` manually for more control over individual tasks.\n`;
-	} else if (mode === 'create' && createdTasks.length > 0) {
-		result += `\n## Created Tasks Summary\n\n`;
-		result += `**${createdTasks.length} tasks created:**\n`;
-		for (const task of createdTasks) {
-			result += `- ${task.id}: ${task.title}\n`;
-		}
-		result += `\nUse \`get_next_task\` to see the execution queue.\n`;
-	} else if (mode === 'preview') {
-		result += `\n## Preview Complete\n\n`;
-		result += `Run with \`mode: "create"\` to create these ${allAnalyzedTodos.length} tasks.\n`;
-	}
+	result += `
+---
+
+## Your Task
+
+Now analyze the thought content above and:
+
+1. Identify the distinct tasks/initiatives (consolidate related items)
+2. For each task, determine title, priority, and relevant context
+3. Use \`create_task\` to create well-structured tasks
+
+Remember: Quality over quantity. Create fewer, well-scoped tasks rather than many granular ones.
+`;
 
 	return {
 		content: [{ type: 'text', text: result }],
 	};
-}
-
-/**
- * Build task description from todo and intent analysis
- */
-function buildDescription(todo, intent) {
-	let desc = '';
-
-	if (todo.section) {
-		desc += `**From:** ${todo.section}\n\n`;
-	}
-
-	desc += `**Original thought:**\n> ${todo.raw}\n\n`;
-
-	if (intent.shadow) {
-		desc += `**Context (why):**\n${intent.shadow}\n\n`;
-	}
-
-	if (todo.context.length > 0) {
-		desc += `**Surrounding context:**\n${todo.context.map(c => `> ${c}`).join('\n')}\n\n`;
-	}
-
-	desc += `---\n*Extracted from thought dump via process_thoughts*`;
-
-	return desc;
 }
 
 /**
@@ -758,7 +355,7 @@ async function listThoughts(args) {
 
 	result += `---\n`;
 	result += `**Total files:** ${totalFiles}\n\n`;
-	result += `**Tools:** \`get_thought\` to read | \`process_thoughts\` to convert to tasks`;
+	result += `**Tools:** \`get_thought\` to read | \`process_thoughts\` to analyze`;
 
 	return {
 		content: [{ type: 'text', text: result }],
@@ -808,7 +405,7 @@ async function getThought(args) {
 	result += parsed.content;
 
 	result += `\n\n---\n`;
-	result += `**Tools:** \`process_thoughts\` to convert to tasks`;
+	result += `**Tools:** \`process_thoughts\` to analyze and create tasks`;
 
 	return {
 		content: [{ type: 'text', text: result }],
